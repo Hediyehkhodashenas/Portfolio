@@ -6,6 +6,11 @@
 
   var list = D.getElementById("project-list");
   var showcase = D.getElementById("showcase");
+  var workIndex = D.getElementById("work-index");
+  var projectView = D.getElementById("project-view");
+  var backBtn = D.getElementById("pv-back");
+  var workSec = D.getElementById("work");
+  var root = D.documentElement;
   var stage = D.getElementById("stage");
   var bar = D.getElementById("stage-bar");
   var strip = D.getElementById("strip");
@@ -57,18 +62,28 @@
     li.className = "item";
     li.dataset.cat = p.category;
     li.dataset.slug = p.slug;
+    var initial = (p.title || "").trim().charAt(0);
     li.innerHTML =
-      '<button class="row" type="button" aria-pressed="false" aria-controls="showcase" id="row-' + esc(p.slug) + '">' +
+      '<button class="row" type="button" aria-controls="project-view" id="row-' + esc(p.slug) + '">' +
         '<span class="row-no" aria-hidden="true">' + p.no + "</span>" +
+        '<span class="row-prev' + (m.length ? " has-img" : " is-empty") + '" data-cat="' + esc(p.category) + '" aria-hidden="true">' +
+          (m.length
+            ? '<img src="' + esc(m[0].src) + '" alt="" loading="lazy" decoding="async" draggable="false">' +
+              (m.length > 1 ? '<span class="row-prev-n">' + pad(m.length) + "</span>" : "")
+            : '<span class="row-prev-mark">' + esc(initial) + "</span>") +
+        "</span>" +
         '<span class="row-title">' + esc(p.title) + (p.award ? '<span class="row-award" title="Award">' + ICON.star + '<span class="sr">Award</span></span>' : "") + "</span>" +
         '<span class="row-meta">' + esc(p.context || CATS[p.category]) + "</span>" +
         '<span class="row-year">' + esc(p.year || "") + "</span>" +
-        '<span class="row-frames">' + (m.length
-          ? '<span class="row-thumbs" aria-hidden="true">' + m.slice(0, 3).map(function (x) {
-              return '<img src="' + esc(x.src) + '" alt="" loading="lazy" decoding="async">';
-            }).join("") + "</span>" + pad(m.length) + '<span class="sr"> frames</span>'
-          : "") + "</span>" +
+        '<span class="row-go" aria-hidden="true">' + ICON.next + "</span>" +
+        (m.length ? '<span class="sr">, ' + m.length + " frames</span>" : "") +
       "</button>";
+    var pimg = li.querySelector(".row-prev img");
+    if (pimg) pimg.addEventListener("error", function () {
+      var slot = pimg.parentNode;
+      slot.className = "row-prev is-empty";
+      slot.innerHTML = '<span class="row-prev-mark">' + esc(initial) + "</span>";
+    }, { once: true });
     list.appendChild(li);
   });
 
@@ -297,7 +312,7 @@
   });
   info.addEventListener("click", function (e) {
     var b = e.target.closest("[data-go]"); if (!b) return;
-    select(b.dataset.go, { user: true });
+    openProject(b.dataset.go, { replace: true });
   });
 
   /* ================= Lightbox ================= */
@@ -346,38 +361,108 @@
   } else { inView = true; }
 
   /* ================= Selection ================= */
-  function select(slug, opts) {
-    opts = opts || {};
+  function select(slug) {
     var p = bySlug(slug);
     if (!p) return;
     if (slug !== current) frame = 0;
     current = slug;
-    items().forEach(function (li) {
-      var on = li.dataset.slug === slug;
-      li.classList.toggle("is-active", on);
-      li.querySelector(".row").setAttribute("aria-pressed", on ? "true" : "false");
-    });
+    items().forEach(function (li) { li.classList.toggle("is-active", li.dataset.slug === slug); });
     renderShowcase(p);
+  }
 
-    if (opts.user) {
-      try {
-        var url = new URL(window.location.href);
-        url.searchParams.set("project", slug);
-        url.hash = "";
-        history.replaceState(null, "", url.pathname + url.search);
-      } catch (e) {}
+  /* ================= Index <-> project view ================= */
+  function isOpen() { return !projectView.hidden; }
+  function setURL(slug, mode) {
+    // mode: "push" | "replace" | null. Fails quietly where history is restricted (some file:// setups).
+    if (!mode) return false;
+    try {
+      var url = new URL(window.location.href);
+      if (slug) url.searchParams.set("project", slug); else url.searchParams.delete("project");
+      url.hash = slug ? "" : "work";
+      var href = url.pathname + url.search + url.hash;
+      if (mode === "push") history.pushState({ project: slug || null }, "", href);
+      else history.replaceState({ project: slug || null }, "", href);
+      return true;
+    } catch (e) { return false; }
+  }
+  var pushed = false; // true while the open project sits on a history entry we pushed
+  function scrollToWork(instant) {
+    var r = workSec.getBoundingClientRect();
+    var off = (masthead.offsetHeight || 0) + 8;
+    window.scrollTo({ top: Math.max(0, window.scrollY + r.top - off), behavior: instant ? "auto" : behavior() });
+  }
+
+  function openProject(slug, opts) {
+    opts = opts || {};
+    if (!bySlug(slug)) return;
+    hidePeek();
+    var wasOpen = isOpen();
+    workIndex.hidden = true;
+    projectView.hidden = false;
+    root.classList.add("is-project");
+    select(slug);
+    var mode = opts.history === null ? null : (opts.replace || wasOpen ? "replace" : "push");
+    if (setURL(slug, mode) && mode === "push") pushed = true;
+    D.title = bySlug(slug).title + " — Hediyeh Khodashenas";
+    scrollToWork(true);
+    if (!opts.noFocus) backBtn.focus({ preventScroll: true });
+  }
+
+  function closeProject(opts) {
+    opts = opts || {};
+    if (!isOpen()) return;
+    if (pushed && opts.history !== null) {
+      // Step back to the index entry so the browser Back button stays in sync.
+      pushed = false;
+      pendingFocus = !opts.noFocus;
+      history.back();
+      return;
     }
-    if (opts.scroll) {
-      var r = showcase.getBoundingClientRect();
-      var off = (masthead.offsetHeight || 0) + 16;
-      if (r.top < off - 4 || r.top > window.innerHeight * 0.25) {
-        window.scrollTo({ top: window.scrollY + r.top - off, behavior: behavior() });
-      }
+    pushed = false;
+    if (lb.open) lb.close();
+    var last = current;
+    projectView.hidden = true;
+    workIndex.hidden = false;
+    root.classList.remove("is-project");
+    D.title = baseTitle;
+    if (opts.history !== null) setURL(null, "replace");
+    // reveal-on-scroll items in the index should be visible on return
+    [].forEach.call(workIndex.querySelectorAll("[data-reveal]"), function (el) { el.classList.add("is-in"); });
+    var row = last && D.getElementById("row-" + last);
+    var li = row && row.parentNode;
+    if (row && li && !li.hidden) {
+      var r = row.getBoundingClientRect();
+      window.scrollTo({ top: Math.max(0, window.scrollY + r.top - window.innerHeight * 0.35), behavior: "auto" });
+      if (!opts.noFocus) row.focus({ preventScroll: true });
+    } else {
+      scrollToWork(true);
     }
   }
 
+  var baseTitle = D.title;
+  backBtn.addEventListener("click", function (e) { e.preventDefault(); closeProject(); });
+  [].forEach.call(D.querySelectorAll('[data-nav="work"], .wordmark'), function (a) {
+    a.addEventListener("click", function (e) {
+      if (!isOpen()) return;
+      e.preventDefault();
+      closeProject({ noFocus: true });
+      if (a.classList.contains("wordmark")) window.scrollTo({ top: 0, behavior: "auto" });
+    });
+  });
+  D.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && isOpen() && !lb.open && !e.defaultPrevented) { e.preventDefault(); closeProject(); }
+  });
+  var pendingFocus = false;
+  window.addEventListener("popstate", function () {
+    var slug = null;
+    try { slug = new URL(window.location.href).searchParams.get("project"); } catch (e) {}
+    var focus = pendingFocus; pendingFocus = false;
+    if (bySlug(slug)) openProject(slug, { history: null, noFocus: true });
+    else closeProject({ history: null, noFocus: !focus });
+  });
+
   /* ================= Filters ================= */
-  function applyFilter(key, fromUser) {
+  function applyFilter(key) {
     filters.forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.filter === key ? "true" : "false"); });
     var n = 0;
     items().forEach(function (li) {
@@ -388,17 +473,12 @@
     });
     void list.offsetWidth;
     visibleItems().forEach(function (li) { li.classList.add("is-entering"); });
-    var vis = visibleItems();
-    var still = vis.some(function (li) { return li.dataset.slug === current; });
-    if (!still && vis.length) select(vis[0].dataset.slug, { user: fromUser });
-    else if (current) select(current, {});
   }
-  filters.forEach(function (b) { b.addEventListener("click", function () { applyFilter(b.dataset.filter, true); }); });
+  filters.forEach(function (b) { b.addEventListener("click", function () { applyFilter(b.dataset.filter); }); });
 
   list.addEventListener("click", function (e) {
     var row = e.target.closest(".row"); if (!row) return;
-    hidePeek();
-    select(row.parentNode.dataset.slug, { user: true, scroll: true });
+    openProject(row.parentNode.dataset.slug);
   });
   list.addEventListener("keydown", function (e) {
     var row = e.target.closest(".row"); if (!row) return;
@@ -467,16 +547,13 @@
   }
 
   /* ================= Initial state ================= */
+  // No query: show the preview index only. ?project=<slug>: open that project's full design.
   var initial = null;
   try { initial = new URL(window.location.href).searchParams.get("project"); } catch (e) {}
-  if (!bySlug(initial)) initial = null;
-  applyFilter("all", false);
-  if (projects.length) select(initial || projects[0].slug, {});
-  if (initial) {
-    requestAnimationFrame(function () {
-      var r = showcase.getBoundingClientRect();
-      window.scrollTo({ top: window.scrollY + r.top - (masthead.offsetHeight || 0) - 16, behavior: "auto" });
-    });
+  applyFilter("all");
+  if (bySlug(initial)) {
+    try { history.replaceState({ project: initial }, "", window.location.href); } catch (e) {}
+    openProject(initial, { history: null, noFocus: true });
   }
 
   var y = D.getElementById("year");
