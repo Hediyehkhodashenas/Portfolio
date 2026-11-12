@@ -1,23 +1,23 @@
 /*
   PROJECT DATA
   ------------------------------------------------------------------
-  Each entry becomes a row in the Work index and a detail view.
+  Each entry becomes a row in the Work index and a showcase view.
 
   category: "digital" | "visual" | "engineering"
+  summary:  one short line. Let the visuals do the talking.
+  scope:    a few words each. Shown as tags (or as the typographic
+            plate when a project has no images yet).
 
-  ADDING IMAGES LATER (e.g. exported from Figma):
-  1. Put files in  assets/work/<slug>/   (e.g. assets/work/stocksnotifier/cover.jpg)
-  2. Add them to the entry's `media` array:
-       media: [
-         { src: "assets/work/stocksnotifier/cover.jpg",
-           alt: "StocksNotifier home screen", caption: "Home screen",
-           width: 1600, height: 1000 }
-       ]
-  Paths are relative, so they work on GitHub Pages project sites too.
-  Images only render when `media` has entries; a file that fails to load
-  is removed automatically, so no empty or broken frames appear.
+  ADDING IMAGES (e.g. exported from Figma):
+  1. Put files in  assets/work/<slug>/
+  2. List them in the entry's `media` array:
+       { src: "assets/work/<slug>/cover.webp", alt: "…", caption: "Home",
+         width: 1600, height: 1000 }
+     Frames with width <= 500 are presented inside a phone.
+  Paths are relative, so they work on GitHub Pages and from file://.
+  A file that fails to load is dropped automatically.
 
-  Optional `links: [{ label: "View on Behance", href: "https://..." }]`
+  Optional `links: [{ label: "Behance", href: "https://..." }]`
 */
 window.PROJECTS = [
   {
@@ -27,15 +27,16 @@ window.PROJECTS = [
     context: "Website design",
     year: "2026",
     role: "UI/UX & visual design",
-    summary: "I designed a one-page website for Action Sports Club, a boutique pilates and functional training studio in Nişantaşı, Istanbul. The site is in Turkish and brings together classes, the club, and reservations in a dark, industrial visual language drawn from the studio itself.",
-    scope: ["Website design", "UI/UX", "Visual design", "Responsive layout"],
+    summary: "A one-page site for a boutique pilates and functional training studio in Nişantaşı, Istanbul.",
+    scope: ["Website design", "UI/UX", "Visual design", "Responsive"],
     media: [
-      { src: "assets/work/action-sports-club/hero.webp", alt: "Action Sports Club homepage hero with large typography and a studio photograph", caption: "Homepage hero", width: 1600, height: 1103 },
+      { src: "assets/work/action-sports-club/hero.webp", alt: "Action Sports Club homepage hero with large typography and a studio photograph", caption: "Homepage", width: 1600, height: 1103 },
       { src: "assets/work/action-sports-club/classes.webp", alt: "Classes section presenting Reformer Pilates, Functional Training, HIIT, Bootcamp, Cycling and Yoga", caption: "Classes", width: 1440, height: 1341 },
       { src: "assets/work/action-sports-club/club.webp", alt: "The club section with studio photography, hours and amenities", caption: "The club", width: 1440, height: 1034 },
       { src: "assets/work/action-sports-club/reviews.webp", alt: "Social proof section showing a 5.0 Google rating from 283 reviews", caption: "Reviews", width: 1440, height: 604 },
-      { src: "assets/work/action-sports-club/location.webp", alt: "Location, hours and reservation calls to action", caption: "Location and reservations", width: 1440, height: 1478 },
-      { src: "assets/work/action-sports-club/mobile-home.webp", alt: "Mobile homepage of the Action Sports Club website", caption: "Mobile homepage", width: 390, height: 844 }
+      { src: "assets/work/action-sports-club/location.webp", alt: "Location, hours and reservation calls to action", caption: "Location & booking", width: 1440, height: 1478 },
+      { src: "assets/work/action-sports-club/mobile-home.webp", alt: "Mobile homepage of the Action Sports Club website", caption: "Mobile — home", width: 390, height: 844 },
+      { src: "assets/work/action-sports-club/mobile-classes.webp", alt: "Mobile classes section of the Action Sports Club website", caption: "Mobile — classes", width: 390, height: 2410 }
     ]
   },
   {
@@ -45,9 +46,8 @@ window.PROJECTS = [
     context: "Collabry",
     year: "2024 — Present",
     role: "Product Manager",
-    summary: "StocksNotifier is one of the Collabry apps I work on as Product Manager. My contribution spans the interface and user experience, product and market analysis, the app’s logo, and the social content that introduces it to its audience.",
-    scope: ["UI/UX design", "Product analysis", "Market analysis", "App logo", "Social content"],
-    note: "A Collabry app. I work on it as Product Manager.",
+    summary: "A Collabry app. I work on it as Product Manager.",
+    scope: ["UI/UX", "Product & market analysis", "App logo", "Social content"],
     media: []
   },
   {
@@ -57,9 +57,8 @@ window.PROJECTS = [
     context: "Collabry",
     year: "2024 — Present",
     role: "Product Manager",
-    summary: "At Collabry I work on Movie Catcher from both sides of the product: shaping its UI/UX and reading the market around it, then carrying that thinking into its logo and social media content.",
-    scope: ["UI/UX design", "Product analysis", "Market analysis", "App logo", "Social content"],
-    note: "A Collabry app. I work on it as Product Manager.",
+    summary: "A Collabry app. I work on it as Product Manager.",
+    scope: ["UI/UX", "Product & market analysis", "App logo", "Social content"],
     media: []
   },
   {
@@ -69,9 +68,8 @@ window.PROJECTS = [
     context: "Collabry",
     year: "2024 — Present",
     role: "Product Manager",
-    summary: "For Reaxio, my role as Product Manager at Collabry combines product and market analysis with hands-on design — the interface and experience, the app logo, and the content used to market it.",
-    scope: ["UI/UX design", "Product analysis", "Market analysis", "App logo", "Social content"],
-    note: "A Collabry app. I work on it as Product Manager.",
+    summary: "A Collabry app. I work on it as Product Manager.",
+    scope: ["UI/UX", "Product & market analysis", "App logo", "Social content"],
     media: []
   },
   {
@@ -81,9 +79,8 @@ window.PROJECTS = [
     context: "Collabry",
     year: "2024 — Present",
     role: "Product Manager",
-    summary: "Speaksynq is another Collabry app I work on. I contribute UI/UX design and product and market analysis, and design its logo and social media content.",
-    scope: ["UI/UX design", "Product analysis", "Market analysis", "App logo", "Social content"],
-    note: "A Collabry app. I work on it as Product Manager.",
+    summary: "A Collabry app. I work on it as Product Manager.",
+    scope: ["UI/UX", "Product & market analysis", "App logo", "Social content"],
     media: []
   },
   {
@@ -93,8 +90,8 @@ window.PROJECTS = [
     context: "Project",
     year: "",
     role: "Analysis, website & MVP",
-    summary: "A digital business for an aromatic coffee brand, taken from analysis to a first version: a market and SWOT analysis to frame the opportunity, a website, and an MVP.",
-    scope: ["Website", "Market analysis", "SWOT analysis", "MVP"],
+    summary: "An aromatic coffee brand, from analysis to a first version.",
+    scope: ["Market analysis", "SWOT", "Website", "MVP"],
     media: []
   },
   {
@@ -104,7 +101,7 @@ window.PROJECTS = [
     context: "Project",
     year: "",
     role: "Branding & analysis",
-    summary: "A project pairing branding for a digital product with an analysis of the market it would enter — so the identity and the positioning are developed together.",
+    summary: "Identity and positioning, developed together.",
     scope: ["Branding", "Market analysis"],
     media: []
   },
@@ -115,7 +112,7 @@ window.PROJECTS = [
     context: "Project",
     year: "",
     role: "",
-    summary: "An AI agent that generates exam papers and worksheets from a single prompt.",
+    summary: "Exam papers and worksheets from a single prompt.",
     scope: ["AI agent", "Education", "Prompt to document"],
     media: []
   },
@@ -126,7 +123,7 @@ window.PROJECTS = [
     context: "Freelance",
     year: "2023",
     role: "Cover designer",
-    summary: "A freelance commission: the cover design for Rumi & Human Aura, a book by Akram Jahangir Tuyserkani.",
+    summary: "Book cover for Akram Jahangir Tuyserkani.",
     scope: ["Book cover", "Visual design"],
     media: []
   },
@@ -137,9 +134,9 @@ window.PROJECTS = [
     context: "Website content",
     year: "2021",
     role: "Content writer & creator",
-    summary: "Website content for PLANO, an online reservation platform. I wrote blog posts and created advertisement content for the platform.",
+    summary: "Blog posts and advertisement content.",
     scope: ["Blog writing", "Advertisement content"],
-    note: "Content contribution only — blogs and advertising.",
+    note: "Content only — blogs and advertising.",
     media: []
   },
   {
@@ -149,7 +146,7 @@ window.PROJECTS = [
     context: "Beykoz Üniversitesi",
     year: "2022",
     role: "Engineering project",
-    summary: "A food delivery service for a gym and healthy-living community, built around three ideas: a user-friendly website, personalised nutritious choices, and sustainable delivery.",
+    summary: "Food delivery for a gym and healthy-living community.",
     scope: ["User-friendly website", "Personalised nutrition", "Sustainable delivery"],
     award: "1st Place — Engineering Project of the Year 2022, Beykoz Üniversitesi",
     media: []
@@ -161,7 +158,7 @@ window.PROJECTS = [
     context: "Academic study",
     year: "",
     role: "Quality management study",
-    summary: "An academic quality management study using Nike sportswear as its subject: a quality control checklist and a concept for an internal portal to support sportswear QC.",
+    summary: "Sportswear QC, with Nike as the subject.",
     scope: ["Quality control", "Checklist design", "Portal concept"],
     note: "Academic project — not a Nike commission or employment.",
     media: []
@@ -173,8 +170,8 @@ window.PROJECTS = [
     context: "Academic study",
     year: "",
     role: "Production planning",
-    summary: "Production planning for a florist across three horizons: daily, weekly and monthly plans.",
-    scope: ["Production planning", "Daily · weekly · monthly plans"],
+    summary: "Planning a florist’s production across three horizons.",
+    scope: ["Daily plan", "Weekly plan", "Monthly plan"],
     media: []
   },
   {
@@ -184,7 +181,7 @@ window.PROJECTS = [
     context: "Academic study",
     year: "",
     role: "Cost analysis",
-    summary: "An industrial engineering cost analysis of a pedestal fan.",
+    summary: "An industrial engineering cost analysis.",
     scope: ["Cost analysis"],
     media: []
   }
