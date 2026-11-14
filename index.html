@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Hediyeh Khodashenas — Product &amp; Design</title>
   <meta name="description" content="Portfolio of Hediyeh Khodashenas, designer in Istanbul. UI/UX, visual design and product thinking.">
   <meta name="color-scheme" content="dark">
@@ -15,69 +15,155 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&amp;family=Instrument+Serif:ital@0;1&amp;display=swap">
   <link rel="stylesheet" href="assets/css/style.css">
-  <script>document.documentElement.classList.add('js');</script>
+  <link rel="stylesheet" href="assets/css/canvas.css">
+  <script>
+    document.documentElement.classList.add('js');
+    // Pick the view before first paint so the list never flashes on the canvas (or vice versa).
+    if (location.hash === '#list') document.documentElement.classList.add('view-list');
+  </script>
 </head>
 <body>
-  <a class="skip-link" href="#work">Skip to work</a>
+  <a class="skip-link" href="#list-view" id="skip-link">Skip to the project list</a>
 
-  <header class="masthead" id="masthead">
-    <div class="masthead-inner">
-      <a class="wordmark" href="#top" aria-label="Hediyeh Khodashenas, back to top">
-        Hediyeh Khodashenas
-      </a>
-      <nav class="nav" aria-label="Primary">
-        <a href="#work" data-nav="work">Work</a>
-        <a href="#about" data-nav="about">About</a>
-        <a href="mailto:hediyehkhodashenas.contact@gmail.com" class="nav-mail">Email</a>
-      </nav>
+  <!-- Floating chrome: file name on the left, view switch + email on the right -->
+  <header class="topbar" id="topbar">
+    <a class="tb-file" href="./" id="tb-home" aria-label="Hediyeh Khodashenas, portfolio home">
+      <span class="tb-mark" aria-hidden="true">h</span>
+      <span class="tb-name">Hediyeh Khodashenas</span>
+      <span class="tb-sep" aria-hidden="true">/</span>
+      <span class="tb-page">Portfolio</span>
+    </a>
+    <div class="tb-right">
+      <div class="seg" role="group" aria-label="View">
+        <button type="button" class="seg-btn" data-view="canvas" aria-pressed="true">
+          <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><rect x="2" y="2" width="5" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="2" width="5" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="2" y="9" width="5" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="11" width="5" height="3" rx="1" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>
+          <span>Canvas</span>
+        </button>
+        <button type="button" class="seg-btn" data-view="list" aria-pressed="false">
+          <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M5.5 4h8M5.5 8h8M5.5 12h8" stroke="currentColor" stroke-width="1.3" fill="none"/><circle cx="2.6" cy="4" r=".9" fill="currentColor"/><circle cx="2.6" cy="8" r=".9" fill="currentColor"/><circle cx="2.6" cy="12" r=".9" fill="currentColor"/></svg>
+          <span>List</span>
+        </button>
+      </div>
+      <a class="tb-mail" href="mailto:hediyehkhodashenas.contact@gmail.com">Email</a>
     </div>
   </header>
 
-  <main id="top">
-    <!-- HERO -->
-    <section class="hero" aria-labelledby="hero-title">
-      <h1 class="hero-title" id="hero-title" data-reveal>
-        Product thinking,<br> made <em>visible.</em>
-      </h1>
-      <ul class="hero-meta" data-reveal>
-        <li>UI/UX · Visual design</li>
-        <li>Istanbul, Türkiye</li>
-      </ul>
-    </section>
+  <main id="main">
+    <!-- ============ CANVAS (default view) ============ -->
+    <section class="canvas" id="canvas" aria-label="Design canvas: drag to explore, open a frame to see the project">
+      <div class="cv-viewport" id="cv-viewport">
+        <div class="cv-world" id="cv-world">
 
-    <!-- WORK -->
-    <section class="work" id="work" aria-labelledby="work-title">
-      <!-- Index: previews only. The full design opens on click. -->
-      <div class="work-index" id="work-index">
-        <div class="work-head" data-reveal>
-          <h2 class="section-label" id="work-title">Work <span class="count" data-count="all"></span></h2>
-          <div class="filters" role="group" aria-label="Filter projects by category">
-            <button type="button" class="filter" data-filter="all" aria-pressed="true">All</button>
-            <button type="button" class="filter" data-filter="digital" aria-pressed="false">Digital products <span class="count" data-count="digital"></span></button>
-            <button type="button" class="filter" data-filter="visual" aria-pressed="false">Visual &amp; content <span class="count" data-count="visual"></span></button>
-            <button type="button" class="filter" data-filter="engineering" aria-pressed="false">Engineering studies <span class="count" data-count="engineering"></span></button>
+          <!-- Intro: the title area the canvas opens on -->
+          <div class="cv-intro" id="cv-intro" data-x="-430" data-y="-150" data-w="860">
+            <p class="cv-intro-name">Hediyeh Khodashenas</p>
+            <h1 class="cv-intro-title">Product thinking,<br> made <em>visible.</em></h1>
+            <ul class="cv-intro-meta">
+              <li>UI/UX · Visual design</li>
+              <li>Istanbul, Türkiye</li>
+            </ul>
           </div>
+
+          <!-- Section labels + artboards are placed here by main.js (from projects.js) -->
+          <div class="cv-layer" id="cv-boards"></div>
+
+          <!-- Sticky notes: real, short content only -->
+          <aside class="note note--sand" id="note-about" data-x="-440" data-y="190" data-r="-1.5" aria-labelledby="note-about-h">
+            <h2 class="note-h" id="note-about-h">About</h2>
+            <p class="note-lead">Designer in Istanbul. UI/UX, visual design and product thinking, grounded in industrial engineering.</p>
+            <p class="note-small"><span>Toolkit</span> Figma · Photoshop · Canva · Wix · Premiere</p>
+          </aside>
+
+          <aside class="note note--sage" id="note-experience" data-r="1.2" aria-labelledby="note-exp-h">
+            <h2 class="note-h" id="note-exp-h">Experience</h2>
+            <ul class="note-list">
+              <li><b>Product Manager</b><span>Collabry · StocksNotifier, Movie Catcher, Reaxio, Speaksynq</span><i>2024</i></li>
+              <li><b>Cover Designer</b><span>Freelance</span><i>2023</i></li>
+              <li><b>Website Content</b><span>PLANO · blogs &amp; ads</span><i>2021</i></li>
+            </ul>
+          </aside>
+
+          <aside class="note note--stone" id="note-education" data-r="-1" aria-labelledby="note-edu-h">
+            <h2 class="note-h" id="note-edu-h">Education</h2>
+            <ul class="note-list">
+              <li><b>M.Sc. Computer Engineering</b><span>Atlas Üniversitesi</span><i>2026 — Present</i></li>
+              <li><b>B.Sc. Industrial Engineering</b><span>Beykoz Üniversitesi</span><i>2022 — 2025</i></li>
+            </ul>
+          </aside>
+
+          <aside class="note note--rose" id="note-recognition" data-r="1.4" aria-labelledby="note-rec-h">
+            <h2 class="note-h" id="note-rec-h">Recognition</h2>
+            <ul class="note-list">
+              <li><b>1st Place, Engineering Project of the Year</b><span>Beykoz Üniversitesi</span><i>2022</i></li>
+              <li><b>Chapter contributor</b><span><em>Digital Transformation: A Human-Centric Approach</em></span></li>
+            </ul>
+          </aside>
+
+          <aside class="note note--clay" id="note-contact" data-r="-1.2" aria-labelledby="note-contact-h">
+            <h2 class="note-h" id="note-contact-h">Say hello</h2>
+            <a class="note-mail" href="mailto:hediyehkhodashenas.contact@gmail.com">hediyehkhodashenas<wbr>.contact<wbr>@gmail.com</a>
+          </aside>
         </div>
-
-        <ol class="index" id="project-list" aria-label="Projects"></ol>
-
-        <noscript>
-          <figure class="noscript-figure">
-            <img src="assets/work/action-sports-club/hero.webp" alt="Action Sports Club homepage preview" width="1600" height="1103">
-            <figcaption>Action Sports Club — website design. Enable JavaScript to open each project.</figcaption>
-          </figure>
-        </noscript>
       </div>
 
-      <!-- Project view: hidden until a project is chosen (or deep-linked with ?project=slug). -->
-      <div class="project-view" id="project-view" hidden>
-        <div class="pv-bar">
-          <a class="pv-back" id="pv-back" href="index.html#work">
-            <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
-            <span>All work</span>
-          </a>
-          <span class="pv-hint" aria-hidden="true">Esc</span>
+      <p class="cv-hint" id="cv-hint" aria-hidden="true"><span class="cv-hint-fine">Drag to explore · Click a frame</span><span class="cv-hint-touch">Drag to explore · Tap a frame</span></p>
+
+      <!-- HUD: sections, zoom, fit -->
+      <div class="hud" id="hud" role="toolbar" aria-label="Canvas controls">
+        <div class="hud-jump">
+          <button type="button" class="hud-btn hud-sections" id="hud-sections" aria-expanded="false" aria-controls="hud-menu">
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h7" stroke="currentColor" stroke-width="1.3" fill="none"/></svg>
+            <span id="hud-where">Sections</span>
+          </button>
+          <div class="hud-menu" id="hud-menu" hidden>
+            <p class="hud-menu-h">Jump to</p>
+            <ul id="hud-menu-list"></ul>
+          </div>
         </div>
+        <span class="hud-div" aria-hidden="true"></span>
+        <button type="button" class="hud-btn hud-icon" data-zoom="-1" aria-label="Zoom out" title="Zoom out (−)">
+          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3.5 8h9" stroke="currentColor" stroke-width="1.4"/></svg>
+        </button>
+        <button type="button" class="hud-btn hud-zoom" id="hud-zoom" aria-label="Reset zoom to 100%" title="Zoom to 100% (1)">100%</button>
+        <button type="button" class="hud-btn hud-icon" data-zoom="1" aria-label="Zoom in" title="Zoom in (+)">
+          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3.5 8h9M8 3.5v9" stroke="currentColor" stroke-width="1.4"/></svg>
+        </button>
+        <span class="hud-div" aria-hidden="true"></span>
+        <button type="button" class="hud-btn hud-fit" id="hud-fit" title="Fit all (0)">
+          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>
+          <span>Fit all</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ============ LIST VIEW (accessible, also the no-canvas alternative) ============ -->
+    <section class="listview" id="list-view" aria-labelledby="lv-title" tabindex="-1">
+      <div class="lv-inner">
+        <header class="lv-head">
+          <p class="lv-kicker">Hediyeh Khodashenas</p>
+          <h2 class="lv-title" id="lv-title">Product thinking,<br class="lv-br"> made <em>visible.</em></h2>
+          <p class="lv-meta">UI/UX · Visual design <span aria-hidden="true">—</span> Istanbul, Türkiye</p>
+        </header>
+        <div id="lv-groups"></div>
+        <section class="lv-about" id="lv-about" aria-label="About"></section>
+        <footer class="lv-foot">
+          <a class="lv-mail" href="mailto:hediyehkhodashenas.contact@gmail.com">hediyehkhodashenas<wbr>.contact<wbr>@gmail.com</a>
+          <p>© <span class="js-year">2026</span> Hediyeh Khodashenas · Istanbul, Türkiye</p>
+        </footer>
+      </div>
+    </section>
+
+    <!-- ============ PROJECT VIEW: opens over the canvas, scrolls on its own ============ -->
+    <div class="project-view" id="project-view" role="dialog" aria-modal="true" aria-label="Project" hidden>
+      <div class="pv-bar">
+        <a class="pv-back" id="pv-back" href="./">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+          <span id="pv-back-label">Canvas</span>
+        </a>
+        <p class="pv-crumb" id="pv-crumb"></p>
+        <span class="pv-hint" aria-hidden="true">Esc</span>
+      </div>
+      <div class="pv-inner">
         <div class="showcase" id="showcase" aria-label="Project showcase">
           <div class="sc-main">
             <div class="stage" id="stage"></div>
@@ -89,66 +175,44 @@
         <!-- Case study: filled only for projects that have one (see caseStudy in projects.js). -->
         <section class="case-study" id="case-study" aria-labelledby="cs-title" hidden></section>
       </div>
-    </section>
-
-    <!-- ABOUT -->
-    <section class="about" id="about" aria-labelledby="about-title">
-      <h2 class="section-label" id="about-title" data-reveal>About</h2>
-      <div class="about-grid">
-        <p class="about-lead" data-reveal>
-          Product thinking, interface design and visual craft — <em>grounded in industrial engineering.</em>
-        </p>
-
-        <div class="cv" data-reveal>
-          <section class="cv-block" aria-labelledby="exp-title">
-            <h3 id="exp-title">Experience</h3>
-            <ul>
-              <li><span class="cv-what">Product Manager<small>Collabry — StocksNotifier, Movie Catcher, Reaxio, Speaksynq</small></span><span class="cv-when">2024</span></li>
-              <li><span class="cv-what">Cover Designer<small>Freelance</small></span><span class="cv-when">2023</span></li>
-              <li><span class="cv-what">Website Content<small>PLANO Online Reservation Platform — blogs &amp; ads</small></span><span class="cv-when">2021</span></li>
-            </ul>
-          </section>
-
-          <section class="cv-block" aria-labelledby="edu-title">
-            <h3 id="edu-title">Education</h3>
-            <ul>
-              <li><span class="cv-what">M.Sc. Computer Engineering<small>Atlas Üniversitesi</small></span><span class="cv-when">2026 — Present</span></li>
-              <li><span class="cv-what">B.Sc. Industrial Engineering<small>Beykoz Üniversitesi</small></span><span class="cv-when">2022 — 2025</span></li>
-            </ul>
-          </section>
-
-          <section class="cv-block" aria-labelledby="rec-title">
-            <h3 id="rec-title">Recognition</h3>
-            <ul>
-              <li><span class="cv-what">1st Place, Engineering Project of the Year<small>Beykoz Üniversitesi</small></span><span class="cv-when">2022</span></li>
-              <li><span class="cv-what">Chapter contributor<small><em>Digital Transformation: A Human-Centric Approach</em></small></span><span class="cv-when">Book</span></li>
-            </ul>
-          </section>
-
-          <section class="cv-block" aria-labelledby="tool-title">
-            <h3 id="tool-title">Toolkit</h3>
-            <ul class="toolkit">
-              <li>Figma</li><li>Photoshop</li><li>Canva</li><li>Wix</li><li>Premiere</li>
-            </ul>
-          </section>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <footer class="footer" id="contact">
-    <div class="footer-inner">
-      <p class="footer-kicker" data-reveal>Say hello</p>
-      <a class="footer-mail" href="mailto:hediyehkhodashenas.contact@gmail.com" data-reveal>
-        hediyehkhodashenas<wbr>.contact<wbr>@gmail.com
-      </a>
-      <div class="footer-base">
-        <span>© <span id="year">2026</span> Hediyeh Khodashenas</span>
-        <span>Istanbul, Türkiye</span>
-        <a href="#top">Back to top ↑</a>
-      </div>
     </div>
-  </footer>
+
+    <noscript>
+      <div class="nojs">
+        <p class="lv-kicker">Hediyeh Khodashenas</p>
+        <h1 class="lv-title">Product thinking, made <em>visible.</em></h1>
+        <p class="lv-meta">UI/UX · Visual design — Istanbul, Türkiye</p>
+        <figure class="nojs-figure">
+          <img src="assets/work/action-sports-club/hero.webp" alt="Action Sports Club homepage preview" width="1600" height="1103">
+          <figcaption>Action Sports Club — website design, 2026</figcaption>
+        </figure>
+        <h2 class="lv-sec">Digital products</h2>
+        <ul class="nojs-list">
+          <li>Action Sports Club — Website design, 2026</li>
+          <li>StocksNotifier — Collabry, 2024 (Product Manager)</li>
+          <li>Movie Catcher — Collabry, 2024 (Product Manager)</li>
+          <li>Reaxio — Collabry, 2024 (Product Manager)</li>
+          <li>Speaksynq — Collabry, 2024 (Product Manager)</li>
+          <li>Online Coffee Market</li>
+          <li>Digital Product Branding &amp; Market Analysis</li>
+          <li>AI Teaching Assistant Agent</li>
+        </ul>
+        <h2 class="lv-sec">Visual &amp; content</h2>
+        <ul class="nojs-list">
+          <li>Rumi &amp; Human Aura — Book cover, 2023</li>
+          <li>PLANO Online Reservation Platform — Blogs and advertisement content, 2021</li>
+        </ul>
+        <h2 class="lv-sec">Engineering studies</h2>
+        <ul class="nojs-list">
+          <li>GYM / Healthy Community Food Delivery Service — 1st Place, Engineering Project of the Year 2022, Beykoz Üniversitesi</li>
+          <li>Quality Management — Nike (academic study, not a Nike commission or employment)</li>
+          <li>Florist Production Planning</li>
+          <li>Pedestal Fan Cost Analysis</li>
+        </ul>
+        <p class="lv-meta">Enable JavaScript to open each project. Say hello: <a href="mailto:hediyehkhodashenas.contact@gmail.com">hediyehkhodashenas.contact@gmail.com</a></p>
+      </div>
+    </noscript>
+  </main>
 
   <dialog class="lightbox" id="lightbox" aria-label="Expanded view">
     <div class="lb-bar">
@@ -167,9 +231,8 @@
     </button>
   </dialog>
 
-  <div class="peek" id="peek" aria-hidden="true"><img alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" decoding="async"></div>
-
   <script src="assets/js/projects.js"></script>
+  <script src="assets/js/camera.js"></script>
   <script src="assets/js/main.js"></script>
 </body>
 </html>

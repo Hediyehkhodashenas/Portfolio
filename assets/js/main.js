@@ -1,16 +1,21 @@
 (function () {
   "use strict";
   var D = document;
+  var root = D.documentElement;
   var projects = window.PROJECTS || [];
   var CATS = { digital: "Digital product", visual: "Visual & content", engineering: "Engineering study" };
+  var SECTIONS = [
+    { key: "digital", label: "Digital products" },
+    { key: "visual", label: "Visual & content" },
+    { key: "engineering", label: "Engineering studies" }
+  ];
 
-  var list = D.getElementById("project-list");
-  var showcase = D.getElementById("showcase");
-  var workIndex = D.getElementById("work-index");
   var projectView = D.getElementById("project-view");
+  var pvBar = projectView.querySelector(".pv-bar");
+  var pvCrumb = D.getElementById("pv-crumb");
+  var pvBackLabel = D.getElementById("pv-back-label");
   var backBtn = D.getElementById("pv-back");
-  var workSec = D.getElementById("work");
-  var root = D.documentElement;
+  var showcase = D.getElementById("showcase");
   var stage = D.getElementById("stage");
   var bar = D.getElementById("stage-bar");
   var strip = D.getElementById("strip");
@@ -19,11 +24,15 @@
   var lbBody = D.getElementById("lb-body");
   var lbTitle = D.getElementById("lb-title");
   var lbCount = D.getElementById("lb-count");
-  var peek = D.getElementById("peek");
-  var masthead = D.getElementById("masthead");
-  var filters = [].slice.call(D.querySelectorAll(".filter"));
+  var canvasEl = D.getElementById("canvas");
+  var vp = D.getElementById("cv-viewport");
+  var world = D.getElementById("cv-world");
+  var boardsEl = D.getElementById("cv-boards");
+  var hud = D.getElementById("hud");
+  var hint = D.getElementById("cv-hint");
+  var listView = D.getElementById("list-view");
+  var topbar = D.getElementById("topbar");
   var reduceMQ = window.matchMedia("(prefers-reduced-motion: reduce)");
-  var hoverMQ = window.matchMedia("(hover: hover) and (pointer: fine)");
 
   var current = null;      // slug
   var frames = [];         // media for current project
@@ -53,47 +62,14 @@
   }
   function isPhone(m) { return m.width && Number(m.width) <= 500; }
   function behavior() { return reduceMQ.matches ? "auto" : "smooth"; }
+  function reduced() { return reduceMQ.matches; }
 
-  /* ================= Index ================= */
-  projects.forEach(function (p, i) {
-    p.no = pad(i + 1);
-    var m = mediaOf(p);
-    var li = D.createElement("li");
-    li.className = "item";
-    li.dataset.cat = p.category;
-    li.dataset.slug = p.slug;
-    var initial = (p.title || "").trim().charAt(0);
-    li.innerHTML =
-      '<button class="row" type="button" aria-controls="project-view" id="row-' + esc(p.slug) + '">' +
-        '<span class="row-no" aria-hidden="true">' + p.no + "</span>" +
-        '<span class="row-prev' + (m.length ? " has-img" : " is-empty") + '" data-cat="' + esc(p.category) + '" aria-hidden="true">' +
-          (m.length
-            ? '<img src="' + esc(m[0].src) + '" alt="" loading="lazy" decoding="async" draggable="false">' +
-              (m.length > 1 ? '<span class="row-prev-n">' + pad(m.length) + "</span>" : "")
-            : '<span class="row-prev-mark">' + esc(initial) + "</span>") +
-        "</span>" +
-        '<span class="row-title">' + esc(p.title) + (p.award ? '<span class="row-award" title="Award">' + ICON.star + '<span class="sr">Award</span></span>' : "") + "</span>" +
-        '<span class="row-meta">' + esc(p.context || CATS[p.category]) + "</span>" +
-        '<span class="row-year">' + esc(p.year || "") + "</span>" +
-        '<span class="row-go" aria-hidden="true">' + ICON.next + "</span>" +
-        (m.length ? '<span class="sr">, ' + m.length + " frames</span>" : "") +
-      "</button>";
-    var pimg = li.querySelector(".row-prev img");
-    if (pimg) pimg.addEventListener("error", function () {
-      var slot = pimg.parentNode;
-      slot.className = "row-prev is-empty";
-      slot.innerHTML = '<span class="row-prev-mark">' + esc(initial) + "</span>";
-    }, { once: true });
-    list.appendChild(li);
+  // Project order = category order (also drives the prev / next pager).
+  var ORDER = [];
+  SECTIONS.forEach(function (s) {
+    projects.forEach(function (p) { if (p.category === s.key) ORDER.push(p.slug); });
   });
-
-  ["all", "digital", "visual", "engineering"].forEach(function (k) {
-    var n = k === "all" ? projects.length : projects.filter(function (p) { return p.category === k; }).length;
-    [].forEach.call(D.querySelectorAll('[data-count="' + k + '"]'), function (el) { el.textContent = pad(n); });
-  });
-
-  function items() { return [].slice.call(list.querySelectorAll(".item")); }
-  function visibleItems() { return items().filter(function (li) { return !li.hidden; }); }
+  ORDER.forEach(function (slug, i) { bySlug(slug).no = pad(i + 1); });
 
   /* ================= Showcase ================= */
   function frameHTML(m, i, where) {
@@ -109,8 +85,8 @@
   function renderShowcase(p) {
     frames = mediaOf(p);
     frame = Math.min(frame, Math.max(0, frames.length - 1));
-    var vis = visibleItems();
-    var idx = vis.findIndex(function (li) { return li.dataset.slug === p.slug; });
+    var vis = ORDER;
+    var idx = vis.indexOf(p.slug);
     var prev = vis.length > 1 ? vis[(idx - 1 + vis.length) % vis.length] : null;
     var next = vis.length > 1 ? vis[(idx + 1) % vis.length] : null;
     var links = (p.links || []).filter(function (l) { return l && l.href; });
@@ -178,9 +154,9 @@
       }).join("") + "</p>" : "") +
       (prev && next ?
         '<div class="info-pager">' +
-          '<button type="button" class="pager" data-go="' + esc(prev.dataset.slug) + '" aria-label="Previous project">' + ICON.prev + "</button>" +
+          '<button type="button" class="pager" data-go="' + esc(prev) + '" aria-label="Previous project">' + ICON.prev + "</button>" +
           '<span class="pager-pos">' + pad(idx + 1) + " / " + pad(vis.length) + "</span>" +
-          '<button type="button" class="pager" data-go="' + esc(next.dataset.slug) + '" aria-label="Next project">' + ICON.next + "</button>" +
+          '<button type="button" class="pager" data-go="' + esc(next) + '" aria-label="Next project">' + ICON.next + "</button>" +
         "</div>" : "");
 
     showcase.classList.remove("is-entering");
@@ -574,9 +550,10 @@
   }
 
   function scrollToEl(el, instant) {
-    var r = el.getBoundingClientRect();
-    var off = (masthead.offsetHeight || 0) + 16; // matches html scroll-padding-top
-    window.scrollTo({ top: Math.max(0, window.scrollY + r.top - off), behavior: instant ? "auto" : behavior() });
+    // The project view is its own scroll container (the canvas underneath never moves).
+    var r = el.getBoundingClientRect(), pr = projectView.getBoundingClientRect();
+    var off = (pvBar.offsetHeight || 0) + 16;
+    projectView.scrollTo({ top: Math.max(0, projectView.scrollTop + r.top - pr.top - off), behavior: instant ? "auto" : behavior() });
   }
   function jumpTo(id) {
     var el = D.getElementById(id); if (!el || !isOpen()) return;
@@ -634,26 +611,344 @@
     D.getElementById("lb-close").focus();
   }
 
+
   /* ================= Selection ================= */
   function select(slug) {
     var p = bySlug(slug);
     if (!p) return;
     if (slug !== current) frame = 0;
     current = slug;
-    items().forEach(function (li) { li.classList.toggle("is-active", li.dataset.slug === slug); });
     renderShowcase(p);
     renderCase(p);
   }
 
-  /* ================= Index <-> project view ================= */
+  /* =================================================================
+     CANVAS
+     World coordinates are CSS px at 100% zoom. Positions live here so the
+     composition is easy to tune; content comes from projects.js.
+     ================================================================= */
+  var COL = 340, GX = 48, GY = 104, TH = 240;          // typographic artboard
+  var STEP = COL + GX;
+  var PLACE = {
+    digital:     { x: 760,  y: -300 },                 // cover row, then a 4-column grid
+    visual:      { x: -430, y: 800,  cols: 2 },        // under the title
+    engineering: { x: -430, y: 1290, cols: 2 }
+  };
+  var NOTES = {                                        // [x, y] world; rotation is on the element
+    "note-about":       [-400, 214],
+    "note-contact":     [-56, 262],
+    "note-experience":  [760 + 3 * STEP + 20, 912],
+    "note-education":   [780, 1300],
+    "note-recognition": [780 + STEP, 1314]
+  };
+
+  var boards = [];          // { el, slug, frame, x, y, w, h, primary }
+  var sectionRects = {};    // key -> world rect
+  var cam = null;
+
+  function boardHTML(p, b) {
+    var label = esc(p.title) + (b.suffix ? '<span class="ab-suffix"> · ' + esc(b.suffix) + "</span>" : "");
+    var head = b.primary
+      ? '<h3 class="ab-label">' + label + "</h3>"
+      : '<span class="ab-label" aria-hidden="true">' + label + "</span>";
+    var body;
+    if (b.media) {
+      var m = b.media;
+      body = '<span class="ab-frame ab-img' + (b.phone ? " is-phone" : "") + '">' +
+        '<img src="' + esc(m.src) + '" alt="' + esc(m.alt) + '" width="' + esc(m.width) + '" height="' + esc(m.height) + '" loading="lazy" decoding="async" draggable="false"></span>';
+    } else {
+      var scope = (p.scope || []).join(" · ");
+      var award = p.award ? p.award.split(",")[0].replace(" — ", " · ") : "";
+      body = '<span class="ab-frame ab-type" data-cat="' + esc(p.category) + '">' +
+        '<span class="t-top"><span class="t-ctx">' + esc(p.context || CATS[p.category]) + "</span>" +
+          (p.year ? '<span class="t-year">' + esc(p.year) + "</span>" : "") + "</span>" +
+        (award ? '<span class="t-award">' + ICON.star + "<span>" + esc(award) + "</span></span>" : "") +
+        '<span class="t-bot"><span class="t-title">' + esc(p.title) + "</span>" +
+          (scope ? '<span class="t-scope">' + esc(scope) + "</span>" : "") + "</span>" +
+        "</span>";
+    }
+    var sel = '<span class="ab-sel" aria-hidden="true"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i>' +
+      '<span class="ab-dim">' + b.w + " × " + b.h + "</span></span>";
+    return head + body + sel;
+  }
+
+  function addBoard(p, b) {
+    var a = D.createElement("a");
+    a.className = "ab" + (b.media ? " ab--img" : " ab--type");
+    a.href = "?project=" + encodeURIComponent(p.slug);
+    a.dataset.slug = p.slug;
+    a.dataset.frame = b.frame || 0;
+    a.draggable = false;
+    a.style.cssText = "left:" + b.x + "px;top:" + b.y + "px;width:" + b.w + "px;height:" + b.h + "px;";
+    a.setAttribute("aria-label", p.title + ", " + (p.context || CATS[p.category]) + (p.year ? ", " + p.year : "") + (p.award ? ", award winner" : ""));
+    if (!b.primary) { a.tabIndex = -1; a.setAttribute("aria-hidden", "true"); }
+    a.innerHTML = boardHTML(p, b);
+    var img = a.querySelector("img");
+    if (img) img.addEventListener("error", function () {
+      // a missing preview falls back to the typographic artboard
+      a.className = "ab ab--type";
+      var f = a.querySelector(".ab-frame"); var tmp = D.createElement("div");
+      tmp.innerHTML = boardHTML(p, { w: b.w, h: b.h, primary: b.primary });
+      f.parentNode.replaceChild(tmp.querySelector(".ab-frame"), f);
+    }, { once: true });
+    boardsEl.appendChild(a);
+    b.el = a; b.slug = p.slug;
+    boards.push(b);
+  }
+
+  function addSectionLabel(s, x, y, n) {
+    var h = D.createElement("h2");
+    h.className = "cv-sec";
+    h.id = "sec-" + s.key;
+    h.style.cssText = "left:" + x + "px;top:" + y + "px;";
+    h.innerHTML = esc(s.label) + ' <span class="cv-sec-n">' + pad(n) + "</span>";
+    boardsEl.appendChild(h);
+  }
+
+  function buildCanvas() {
+    SECTIONS.forEach(function (s) {
+      var list = projects.filter(function (p) { return p.category === s.key; });
+      var P = PLACE[s.key], x0 = P.x, y0 = P.y, cols = P.cols || 4;
+      addSectionLabel(s, x0, y0, list.length);
+      var gx = 0, gy = y0, maxX = x0, maxY = y0;
+      list.forEach(function (p) {
+        var m = mediaOf(p);
+        var desk = m.filter(function (f) { return !isPhone(f); })[0];
+        var phone = m.filter(isPhone)[0];
+        if (s.key === "digital" && desk && cols === 4 && gx === 0 && gy === y0) {
+          // The lead project: desktop cover across three columns + its mobile frame.
+          var hh = 752, dw = 3 * COL + 2 * GX;
+          addBoard(p, { x: x0, y: y0, w: dw, h: hh, media: desk, frame: m.indexOf(desk), primary: true, suffix: phone ? "Desktop" : "" });
+          if (phone) addBoard(p, { x: x0 + 3 * STEP, y: y0, w: COL, h: hh, media: phone, phone: true, frame: m.indexOf(phone), primary: false, suffix: "Mobile" });
+          gy = y0 + hh + GY; maxY = gy - GY; maxX = x0 + 4 * STEP - GX;
+          return;
+        }
+        var bx = x0 + gx * STEP;
+        addBoard(p, { x: bx, y: gy, w: COL, h: TH, media: desk || null, frame: desk ? m.indexOf(desk) : 0, primary: true });
+        maxX = Math.max(maxX, bx + COL); maxY = Math.max(maxY, gy + TH);
+        gx++;
+        if (gx >= cols) { gx = 0; gy += TH + GY; }
+      });
+      sectionRects[s.key] = { x: x0, y: y0 - 60, w: maxX - x0, h: maxY - y0 + 60 };
+    });
+
+    // place notes
+    Object.keys(NOTES).forEach(function (id) {
+      var el = D.getElementById(id); if (!el) return;
+      el.style.left = NOTES[id][0] + "px";
+      el.style.top = NOTES[id][1] + "px";
+      el.style.setProperty("--r", (Number(el.dataset.r) || 0) + "deg");
+    });
+    var intro = D.getElementById("cv-intro");
+    intro.style.left = intro.dataset.x + "px";
+    intro.style.top = intro.dataset.y + "px";
+    intro.style.width = intro.dataset.w + "px";
+  }
+
+  function elRect(el) {
+    return { x: parseFloat(el.style.left) || 0, y: parseFloat(el.style.top) || 0, w: el.offsetWidth, h: el.offsetHeight };
+  }
+  function union(rs) {
+    var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    rs.forEach(function (r) { x0 = Math.min(x0, r.x); y0 = Math.min(y0, r.y); x1 = Math.max(x1, r.x + r.w); y1 = Math.max(y1, r.y + r.h); });
+    return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+  }
+  function contentRect() {
+    var rs = boards.map(function (b) { return b; });
+    [].forEach.call(world.querySelectorAll(".note, .cv-intro"), function (el) { rs.push(elRect(el)); });
+    var u = union(rs);
+    return { x: u.x, y: u.y - 70, w: u.w, h: u.h + 70 };   // room for the section labels
+  }
+  function introRect() { return elRect(D.getElementById("cv-intro")); }
+
+  function isNarrow() { return window.innerWidth < 720; }
+  function chromePad() {
+    // keep framed things clear of the top bar and the HUD
+    return isNarrow() ? { t: 76, r: 18, b: 92, l: 18 } : { t: 88, r: 56, b: 104, l: 56 };
+  }
+  function landingView() {
+    var s = cam.size(), r = introRect();
+    if (isNarrow()) {
+      // phones: the title near the top, the file continuing below it
+      var zn = Math.min(.62, (s.w - 40) / r.w);
+      return { x: r.x + r.w / 2, y: r.y - 10 + (s.h / 2 - 104) / zn, z: zn };
+    }
+    // desktop: the title, with the work peeking in from the right and below
+    var z = Math.max(.45, Math.min(.82, s.w / 2100, s.h / 1300));
+    return { x: r.x + r.w / 2 + 160, y: r.y + r.h / 2 + 60, z: z };
+  }
+  function fitAllView() { return cam.fit(contentRect(), chromePad()); }
+  function updateZoomLimits() {
+    var f = fitAllView();
+    cam.setZoomLimits(Math.min(.25, f.z * .85), isNarrow() ? 3 : 2.5);
+    var b = contentRect();
+    cam.setBounds(b);
+  }
+
+  /* ---------- camera + HUD ---------- */
+  var hudZoom = D.getElementById("hud-zoom");
+  var hintTimer = 0, hinted = false;
+  function dismissHint() {
+    if (hinted) return; hinted = true;
+    setTimeout(function () { hint.classList.add("is-gone"); }, 500);
+  }
+
+  function initCamera() {
+    cam = new window.Camera(vp, world, {
+      reduceMotion: reduced,
+      onInteract: function () { dismissHint(); closeMenu(); },
+      isFrame: function (t) { return t && t.closest && t.closest(".ab, .note"); }
+    });
+    var far = null;
+    cam.onChange(function (x, y, z) {
+      hudZoom.textContent = Math.round(z * 100) + "%";
+      // like a design tool, frame names step aside when the frames get tiny
+      var f = z < .3;
+      if (f !== far) { far = f; world.classList.toggle("is-far", f); }
+    });
+    updateZoomLimits();
+    window.addEventListener("resize", function () {
+      if (root.classList.contains("view-list")) return;
+      var before = cam.size();
+      cam.resize();
+      updateZoomLimits();
+      if (isOpen() && openBoard) cam.set(cam.fit(openBoard, chromePad(), 3));
+      else if (before.w !== cam.size().w && !moved) cam.set(landingView());
+    });
+  }
+  var moved = false;     // the visitor has moved the camera themselves
+
+  hud.addEventListener("click", function (e) {
+    var zb = e.target.closest("[data-zoom]");
+    if (zb) { moved = true; cam.zoomAt(cam.get().z * (zb.dataset.zoom === "1" ? 1.5 : 1 / 1.5), null, null, true); return; }
+    if (e.target.closest("#hud-zoom")) { moved = true; cam.zoomAt(1, null, null, true); return; }
+    if (e.target.closest("#hud-fit")) { moved = true; cam.animateTo(fitAllView(), { duration: 560 }); return; }
+    if (e.target.closest("#hud-sections")) { toggleMenu(); return; }
+    var j = e.target.closest("[data-jump-to]");
+    if (j) { closeMenu(); flyTo(j.dataset.jumpTo); }
+  });
+
+  var menu = D.getElementById("hud-menu");
+  var menuBtn = D.getElementById("hud-sections");
+  var JUMPS = [
+    ["intro", "Intro"],
+    ["digital", "Digital products"],
+    ["visual", "Visual & content"],
+    ["engineering", "Engineering studies"],
+    ["note-about", "About"],
+    ["note-contact", "Contact"],
+    ["all", "Fit all"]
+  ];
+  D.getElementById("hud-menu-list").innerHTML = JUMPS.map(function (j) {
+    var n = sectionCount(j[0]);
+    return '<li><button type="button" data-jump-to="' + j[0] + '"><span>' + esc(j[1]) + "</span>" + (n ? "<small>" + pad(n) + "</small>" : "") + "</button></li>";
+  }).join("");
+  function sectionCount(k) { var n = projects.filter(function (p) { return p.category === k; }).length; return n || 0; }
+  function openMenu() { menu.hidden = false; menuBtn.setAttribute("aria-expanded", "true"); var f = menu.querySelector("button"); if (f) f.focus(); }
+  function closeMenu(refocus) {
+    if (menu.hidden) return;
+    menu.hidden = true; menuBtn.setAttribute("aria-expanded", "false");
+    if (refocus) menuBtn.focus();
+  }
+  function toggleMenu() { if (menu.hidden) openMenu(); else closeMenu(); }
+  D.addEventListener("pointerdown", function (e) { if (!menu.hidden && !e.target.closest(".hud-jump")) closeMenu(); });
+  menu.addEventListener("keydown", function (e) {
+    var bs = [].slice.call(menu.querySelectorAll("button")), i = bs.indexOf(D.activeElement);
+    if (e.key === "ArrowDown") { e.preventDefault(); bs[(i + 1) % bs.length].focus(); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); bs[(i - 1 + bs.length) % bs.length].focus(); }
+  });
+
+  function flyTo(key) {
+    moved = true;
+    var r, zMax = 1.1;
+    if (key === "all") { cam.animateTo(fitAllView(), { duration: 600 }); return; }
+    if (key === "intro") { cam.animateTo(landingView(), { duration: 600 }); return; }
+    if (sectionRects[key]) r = sectionRects[key];
+    else { var el = D.getElementById(key); if (!el) return; r = elRect(el); zMax = 1.2; r = { x: r.x - 160, y: r.y - 120, w: r.w + 320, h: r.h + 240 }; }
+    cam.animateTo(cam.fit(r, chromePad(), zMax), { duration: 600 });
+  }
+
+  /* ---------- sticky notes: click one to bring it up to reading size ---------- */
+  world.addEventListener("click", function (e) {
+    var n = e.target.closest(".note");
+    if (!n || e.target.closest("a")) return;
+    var r = elRect(n), v = cam.get(), s = cam.size();
+    if (v.z * r.w > Math.min(360, s.w * .7)) return;          // already readable
+    moved = true; dismissHint();
+    var zz = Math.min(isNarrow() ? (s.w - 48) / r.w : 1.25, 2);
+    cam.animateTo(cam.fit({ x: r.x - 40, y: r.y - 40, w: r.w + 80, h: r.h + 80 }, chromePad(), zz), { duration: 520 });
+  });
+
+  /* ---------- artboards: keyboard focus brings them into view ---------- */
+  function boardFor(el) { for (var i = 0; i < boards.length; i++) if (boards[i].el === el) return boards[i]; return null; }
+  function primaryBoard(slug) { for (var i = 0; i < boards.length; i++) if (boards[i].slug === slug && boards[i].primary) return boards[i]; return null; }
+  world.addEventListener("focusin", function (e) {
+    var t = e.target;
+    var el = t.closest && t.closest(".ab, .note");
+    if (!el || isOpen() || opening) return;
+    var kb = false; try { kb = t.matches(":focus-visible"); } catch (err) { kb = true; }
+    if (!kb) return;
+    var r = el.classList.contains("ab") ? boardFor(el) : elRect(el);
+    var v = cam.get(), s = cam.size(), pd = chromePad();
+    var a = cam.toScreen(r.x, r.y), b = cam.toScreen(r.x + r.w, r.y + r.h);
+    var visible = a.x >= pd.l && a.y >= pd.t && b.x <= s.w - pd.r && b.y <= s.h - pd.b;
+    if (visible && (b.x - a.x) > 140) return;
+    var zz = Math.max(v.z, Math.min(1, 0.36 * s.w / r.w));
+    var f = cam.fit({ x: r.x - 120, y: r.y - 100, w: r.w + 240, h: r.h + 200 }, pd, zz);
+    cam.animateTo(f, { duration: 420 });
+    moved = true;
+  });
+
+  /* ---------- open a frame: zoom in, then the project view ---------- */
+  var saved = null;          // camera before zooming into a frame
+  var opening = false;
+  var openBoard = null;      // board rect the camera is parked on while a project is open
+  var openTimer = 0;
+
+  boardsEl.addEventListener("click", function (e) {
+    var a = e.target.closest(".ab"); if (!a) return;
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button > 0) return;   // new tab etc. stays native
+    e.preventDefault();
+    openFromCanvas(a);
+  });
+
+  function openFromCanvas(a) {
+    if (opening || isOpen()) return;
+    var b = boardFor(a); if (!b) return;
+    dismissHint(); closeMenu();
+    saved = cam.get();
+    opening = true;
+    openBoard = b;
+    world.classList.add("is-focusing");
+    a.classList.add("is-target");
+    var target = cam.fit(b, chromePad(), 3);
+    var dur = 560;
+    if (reduced()) { opening = false; openProject(b.slug, { frame: Number(a.dataset.frame) || 0 }); return; }
+    clearTimeout(openTimer);
+    openTimer = setTimeout(function () {
+      // the project view starts fading in over the last part of the dive
+      if (!opening) return;
+      opening = false;
+      openProject(b.slug, { frame: Number(a.dataset.frame) || 0 });
+    }, dur * .72);
+    cam.animateTo(target, {
+      duration: dur,
+      onCancel: function () {
+        if (opening) { opening = false; clearTimeout(openTimer); world.classList.remove("is-focusing"); a.classList.remove("is-target"); openBoard = null; }
+      }
+    });
+  }
+
+  /* ================= Project view (overlay) ================= */
   function isOpen() { return !projectView.hidden; }
+  function view() { return root.classList.contains("view-list") ? "list" : "canvas"; }
   function setURL(slug, mode) {
     // mode: "push" | "replace" | null. Fails quietly where history is restricted (some file:// setups).
     if (!mode) return false;
     try {
       var url = new URL(window.location.href);
       if (slug) url.searchParams.set("project", slug); else url.searchParams.delete("project");
-      url.hash = slug ? "" : "work";
+      url.hash = slug ? "" : (view() === "list" ? "list" : "");
       var href = url.pathname + url.search + url.hash;
       if (mode === "push") history.pushState({ project: slug || null }, "", href);
       else history.replaceState({ project: slug || null }, "", href);
@@ -661,26 +956,46 @@
     } catch (e) { return false; }
   }
   var pushed = false; // true while the open project sits on a history entry we pushed
-  function scrollToWork(instant) {
-    var r = workSec.getBoundingClientRect();
-    var off = (masthead.offsetHeight || 0) + 8;
-    window.scrollTo({ top: Math.max(0, window.scrollY + r.top - off), behavior: instant ? "auto" : behavior() });
-  }
+  var baseTitle = D.title;
+  var leaveTimer = 0;
+
+  function sectionLabel(p) { for (var i = 0; i < SECTIONS.length; i++) if (SECTIONS[i].key === p.category) return SECTIONS[i].label; return ""; }
 
   function openProject(slug, opts) {
     opts = opts || {};
-    if (!bySlug(slug)) return;
-    hidePeek();
+    var p = bySlug(slug);
+    if (!p) return;
     var wasOpen = isOpen();
-    workIndex.hidden = true;
-    projectView.hidden = false;
-    root.classList.add("is-project");
+    clearTimeout(leaveTimer);
+    projectView.classList.remove("is-leaving");
+    if (opts.frame != null && slug !== current) { current = null; }
     select(slug);
+    if (opts.frame != null) setFrame(opts.frame, { instant: true });
+    projectView.hidden = false;
+    projectView.setAttribute("aria-label", p.title);
+    root.classList.add("pv-open");
+    canvasEl.inert = true; listView.inert = true; topbar.inert = true;
+    pvCrumb.innerHTML = "<span>" + esc(sectionLabel(p)) + '</span><span aria-hidden="true">/</span><b>' + esc(p.title) + "</b>";
+    pvBackLabel.textContent = view() === "list" ? "All work" : "Canvas";
+
+    // keep the camera parked on this project's frame (it is what Back zooms out from)
+    if (view() === "canvas" && cam) {
+      var b = primaryBoard(slug);
+      if (b) {
+        if (!saved) saved = landingView();
+        openBoard = b;
+        world.classList.add("is-focusing");
+        [].forEach.call(boardsEl.querySelectorAll(".ab.is-target"), function (x) { x.classList.remove("is-target"); });
+        if (!opts.keepTarget) b.el.classList.add("is-target");
+        if (wasOpen || opts.instant) cam.set(cam.fit(b, chromePad(), 3));
+      }
+    }
+
     var mode = opts.history === null ? null : (opts.replace || wasOpen ? "replace" : "push");
     if (setURL(slug, mode) && mode === "push") pushed = true;
-    D.title = bySlug(slug).title + " — Hediyeh Khodashenas";
+    D.title = p.title + " — Hediyeh Khodashenas";
     if (opts.target === "case-study" && !caseEl.hidden) scrollToEl(caseEl, true);
-    else scrollToWork(true);
+    else projectView.scrollTop = 0;
     if (!opts.noFocus) backBtn.focus({ preventScroll: true });
   }
 
@@ -688,7 +1003,7 @@
     opts = opts || {};
     if (!isOpen()) return;
     if (pushed && opts.history !== null) {
-      // Step back to the index entry so the browser Back button stays in sync.
+      // Step back to the canvas entry so the browser Back button stays in sync.
       pushed = false;
       pendingFocus = !opts.noFocus;
       history.back();
@@ -697,36 +1012,39 @@
     pushed = false;
     if (lb.open) lb.close();
     var last = current;
-    projectView.hidden = true;
-    workIndex.hidden = false;
-    root.classList.remove("is-project");
+    canvasEl.inert = false; listView.inert = false; topbar.inert = false;
+    root.classList.remove("pv-open");
     D.title = baseTitle;
     if (opts.history !== null) setURL(null, "replace");
-    // reveal-on-scroll items in the index should be visible on return
-    [].forEach.call(workIndex.querySelectorAll("[data-reveal]"), function (el) { el.classList.add("is-in"); });
-    var row = last && D.getElementById("row-" + last);
-    var li = row && row.parentNode;
-    if (row && li && !li.hidden) {
-      var r = row.getBoundingClientRect();
-      window.scrollTo({ top: Math.max(0, window.scrollY + r.top - window.innerHeight * 0.35), behavior: "auto" });
-      if (!opts.noFocus) row.focus({ preventScroll: true });
+
+    var finish = function () { projectView.hidden = true; projectView.classList.remove("is-leaving"); };
+    if (reduced()) finish();
+    else { projectView.classList.add("is-leaving"); leaveTimer = setTimeout(finish, 240); }
+
+    if (view() === "canvas" && cam) {
+      var back = saved || landingView();
+      saved = null;
+      var tgt = openBoard && openBoard.el;
+      openBoard = null;
+      world.classList.remove("is-focusing");
+      cam.animateTo(cam.clampView(back), { duration: 540, cb: function () { if (tgt) tgt.classList.remove("is-target"); } });
+      if (tgt && !reduced()) setTimeout(function () { tgt.classList.remove("is-target"); }, 560); else if (tgt) tgt.classList.remove("is-target");
+      var pb = primaryBoard(last);
+      if (pb && !opts.noFocus) pb.el.focus({ preventScroll: true });
     } else {
-      scrollToWork(true);
+      var row = last && listView.querySelector('.lv-item[data-slug="' + last + '"]');
+      if (row) {
+        var r = row.getBoundingClientRect();
+        if (r.top < 60 || r.bottom > window.innerHeight) window.scrollTo({ top: Math.max(0, window.scrollY + r.top - window.innerHeight * .35), behavior: "auto" });
+        if (!opts.noFocus) row.focus({ preventScroll: true });
+      }
     }
   }
 
-  var baseTitle = D.title;
   backBtn.addEventListener("click", function (e) { e.preventDefault(); closeProject(); });
-  [].forEach.call(D.querySelectorAll('[data-nav="work"], .wordmark'), function (a) {
-    a.addEventListener("click", function (e) {
-      if (!isOpen()) return;
-      e.preventDefault();
-      closeProject({ noFocus: true });
-      if (a.classList.contains("wordmark")) window.scrollTo({ top: 0, behavior: "auto" });
-    });
-  });
-  D.addEventListener("keydown", function (e) {
-    if (e.key === "Escape" && isOpen() && !lb.open && !e.defaultPrevented) { e.preventDefault(); closeProject(); }
+  info.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-go]"); if (!b) return;
+    openProject(b.dataset.go, { replace: true });
   });
   function hashTarget() { return window.location.hash === "#case-study" ? "case-study" : null; }
   var pendingFocus = false;
@@ -734,117 +1052,136 @@
     var slug = null;
     try { slug = new URL(window.location.href).searchParams.get("project"); } catch (e) {}
     var focus = pendingFocus; pendingFocus = false;
-    if (bySlug(slug)) openProject(slug, { history: null, noFocus: true, target: hashTarget() });
+    if (bySlug(slug)) openProject(slug, { history: null, noFocus: true, target: hashTarget(), instant: true });
     else closeProject({ history: null, noFocus: !focus });
   });
 
-  /* ================= Filters ================= */
-  function applyFilter(key) {
-    filters.forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.filter === key ? "true" : "false"); });
-    var n = 0;
-    items().forEach(function (li) {
-      var show = key === "all" || li.dataset.cat === key;
-      li.hidden = !show;
-      li.classList.remove("is-entering");
-      if (show) { li.style.setProperty("--i", n); n++; }
+  /* ================= Keyboard ================= */
+  D.addEventListener("keydown", function (e) {
+    if (e.defaultPrevented) return;
+    var t = e.target;
+    if (e.key === "Escape") {
+      if (lb.open) return;                                  // the dialog closes itself first
+      if (!menu.hidden) { e.preventDefault(); closeMenu(true); return; }
+      if (isOpen()) { e.preventDefault(); closeProject(); return; }
+      return;
+    }
+    if (isOpen() || lb.open || view() !== "canvas" || !cam) return;
+    if (e.altKey || e.metaKey || e.ctrlKey) return;
+    if (t && t.closest && (t.closest("input, textarea, select, [contenteditable]") || t.closest(".hud-menu"))) return;
+    var k = e.key, step = e.shiftKey ? 320 : 120, done = true;
+    if (k === "ArrowLeft" || k === "a" || k === "A") cam.panBy(-step, 0, true);
+    else if (k === "ArrowRight" || k === "d" || k === "D") cam.panBy(step, 0, true);
+    else if (k === "ArrowUp" || k === "w" || k === "W") cam.panBy(0, -step, true);
+    else if (k === "ArrowDown" || k === "s" || k === "S") cam.panBy(0, step, true);
+    else if (k === "+" || k === "=") cam.zoomAt(cam.get().z * 1.5, null, null, true);
+    else if (k === "-" || k === "_") cam.zoomAt(cam.get().z / 1.5, null, null, true);
+    else if (k === "0") cam.animateTo(fitAllView(), { duration: 560 });
+    else if (k === "1") cam.zoomAt(1, null, null, true);
+    else done = false;
+    if (done) { e.preventDefault(); moved = true; dismissHint(); }
+  });
+
+  /* ================= List view ================= */
+  function buildList() {
+    var groups = D.getElementById("lv-groups");
+    groups.innerHTML = SECTIONS.map(function (s) {
+      var list = projects.filter(function (p) { return p.category === s.key; });
+      return '<section class="lv-group" aria-labelledby="lv-' + s.key + '">' +
+        '<h3 class="lv-sec" id="lv-' + s.key + '">' + esc(s.label) + ' <span>' + pad(list.length) + "</span></h3>" +
+        '<ol class="lv-list">' + list.map(function (p) {
+          var m = mediaOf(p).filter(function (f) { return !isPhone(f); })[0];
+          var thumb = m
+            ? '<span class="lv-thumb"><img src="' + esc(m.src) + '" alt="" loading="lazy" decoding="async" width="' + esc(m.width) + '" height="' + esc(m.height) + '"></span>'
+            : '<span class="lv-thumb is-type" data-cat="' + esc(p.category) + '" data-mono="' + esc((p.title || "").trim().charAt(0)) + '" aria-hidden="true"><span class="lv-scope">' +
+                (p.scope || []).slice(0, 3).map(function (x) { return "<span>" + esc(x) + "</span>"; }).join("") + "</span></span>";
+          var sub = [p.context || CATS[p.category], p.year].filter(Boolean).join(" · ");
+          return '<li><a class="lv-item" href="?project=' + encodeURIComponent(p.slug) + '" data-slug="' + esc(p.slug) + '">' + thumb +
+            '<span class="lv-text"><span class="lv-name">' + esc(p.title) + (p.award ? '<span class="lv-award" title="Award">' + ICON.star + '<span class="sr">Award</span></span>' : "") + "</span>" +
+            '<span class="lv-sub">' + esc(sub) + "</span></span>" +
+            '<span class="lv-go" aria-hidden="true">' + ICON.next + "</span></a></li>";
+        }).join("") + "</ol></section>";
+    }).join("");
+    // About: the same notes as the canvas, set as a calm grid
+    var about = D.getElementById("lv-about");
+    about.innerHTML = '<h3 class="lv-sec">About</h3><div class="lv-notes">' +
+      ["note-about", "note-experience", "note-education", "note-recognition"].map(function (id) {
+        var n = D.getElementById(id);
+        var html = n.innerHTML.replace(/\sid="[^"]*"/g, "").replace(/<h2 class="note-h"/g, '<h4 class="note-h"').replace(/<\/h2>/g, "</h4>");
+        return '<div class="lv-note">' + html + "</div>";
+      }).join("") + "</div>";
+    groups.addEventListener("click", function (e) {
+      var a = e.target.closest(".lv-item"); if (!a) return;
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button > 0) return;
+      e.preventDefault();
+      openProject(a.dataset.slug);
     });
-    void list.offsetWidth;
-    visibleItems().forEach(function (li) { li.classList.add("is-entering"); });
   }
-  filters.forEach(function (b) { b.addEventListener("click", function () { applyFilter(b.dataset.filter); }); });
 
-  list.addEventListener("click", function (e) {
-    var row = e.target.closest(".row"); if (!row) return;
-    openProject(row.parentNode.dataset.slug);
+  /* ================= View switch ================= */
+  var segBtns = [].slice.call(D.querySelectorAll(".seg-btn"));
+  function setView(v, opts) {
+    opts = opts || {};
+    root.classList.toggle("view-list", v === "list");
+    segBtns.forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.view === v ? "true" : "false"); });
+    if (!opts.silent && !isOpen()) setURL(null, "replace");
+    if (v === "canvas" && cam) { cam.resize(); updateZoomLimits(); if (!moved) cam.set(landingView()); }
+    if (v === "list") window.scrollTo(0, 0);
+  }
+  segBtns.forEach(function (b) { b.addEventListener("click", function () { setView(b.dataset.view); }); });
+  D.getElementById("skip-link").addEventListener("click", function (e) {
+    e.preventDefault(); setView("list"); listView.focus();
   });
-  list.addEventListener("keydown", function (e) {
-    var row = e.target.closest(".row"); if (!row) return;
-    var rows = visibleItems().map(function (li) { return li.querySelector(".row"); });
-    var i = rows.indexOf(row), j = -1;
-    if (e.key === "ArrowDown") j = Math.min(rows.length - 1, i + 1);
-    else if (e.key === "ArrowUp") j = Math.max(0, i - 1);
-    else if (e.key === "Home") j = 0;
-    else if (e.key === "End") j = rows.length - 1;
-    if (j < 0) return;
+  D.getElementById("tb-home").addEventListener("click", function (e) {
+    if (e.metaKey || e.ctrlKey) return;
     e.preventDefault();
-    rows[j].focus();
+    if (view() === "canvas") { moved = false; cam.animateTo(landingView(), { duration: 600 }); }
+    else window.scrollTo({ top: 0, behavior: behavior() });
   });
 
-  /* ---- cursor-following preview on index rows with images ---- */
-  var peekImg = peek.querySelector("img");
-  var px = 0, py = 0, tx = 0, ty = 0, peekRAF = 0, peekOn = false;
-  function peekTick() {
-    px += (tx - px) * (reduceMQ.matches ? 1 : 0.18);
-    py += (ty - py) * (reduceMQ.matches ? 1 : 0.18);
-    peek.style.transform = "translate3d(" + px.toFixed(1) + "px," + py.toFixed(1) + "px,0)";
-    peekRAF = (peekOn && (Math.abs(tx - px) > 0.3 || Math.abs(ty - py) > 0.3)) ? requestAnimationFrame(peekTick) : 0;
-  }
-  function hidePeek() { peekOn = false; peek.classList.remove("is-on"); }
-  list.addEventListener("pointermove", function (e) {
-    if (!hoverMQ.matches || e.pointerType !== "mouse") return;
-    var li = e.target.closest(".item");
-    var p = li && bySlug(li.dataset.slug);
-    var m = p && mediaOf(p)[0];
-    if (!m) { hidePeek(); return; }
-    if (peekImg.getAttribute("src") !== m.src) peekImg.src = m.src;
-    tx = e.clientX + 24; ty = e.clientY - 90;
-    if (!peekOn) { px = tx; py = ty; peekOn = true; peek.classList.add("is-on"); }
-    if (!peekRAF) peekRAF = requestAnimationFrame(peekTick);
-  });
-  list.addEventListener("pointerleave", hidePeek);
-  window.addEventListener("scroll", function () { if (peekOn) hidePeek(); }, { passive: true });
+  /* ================= Init ================= */
+  buildCanvas();
+  buildList();
+  initCamera();
+  [].forEach.call(D.querySelectorAll(".js-year"), function (y) { y.textContent = new Date().getFullYear(); });
 
-  window.addEventListener("resize", function () { if (frames.length) fitFrames(); });
-
-  /* ================= Masthead, nav, reveal ================= */
-  var onScroll = function () { masthead.classList.toggle("is-scrolled", window.scrollY > 8); };
-  window.addEventListener("scroll", onScroll, { passive: true });
-  onScroll();
-
-  var navLinks = [].slice.call(D.querySelectorAll("[data-nav]"));
-  if ("IntersectionObserver" in window) {
-    var state = {};
-    var navIO = new IntersectionObserver(function (entries) {
-      entries.forEach(function (en) { state[en.target.id] = en.isIntersecting; });
-      var active = state.about ? "about" : state.work ? "work" : null;
-      navLinks.forEach(function (a) {
-        if (a.dataset.nav === active) a.setAttribute("aria-current", "true"); else a.removeAttribute("aria-current");
-      });
-    }, { rootMargin: "-45% 0px -50% 0px" });
-    ["work", "about"].forEach(function (id) { var s = D.getElementById(id); if (s) navIO.observe(s); });
-
-    var revealIO = new IntersectionObserver(function (entries) {
-      entries.forEach(function (en) {
-        if (en.isIntersecting) { en.target.classList.add("is-in"); revealIO.unobserve(en.target); }
-      });
-    }, { rootMargin: "0px 0px -6% 0px", threshold: 0.05 });
-    [].forEach.call(D.querySelectorAll("[data-reveal]"), function (el) { revealIO.observe(el); });
-  } else {
-    [].forEach.call(D.querySelectorAll("[data-reveal]"), function (el) { el.classList.add("is-in"); });
-  }
-
-  /* ================= Initial state ================= */
-  // No query: show the preview index only. ?project=<slug>: open that project's full design.
   var initial = null;
   try { initial = new URL(window.location.href).searchParams.get("project"); } catch (e) {}
-  applyFilter("all");
+  var startList = window.location.hash === "#list";
+  setView(startList ? "list" : "canvas", { silent: true });
+
   if (bySlug(initial)) {
+    // Deep link: straight into the project. Back zooms out to the canvas.
+    root.classList.add("no-intro");
     try { history.replaceState({ project: initial }, "", window.location.href); } catch (e) {}
     var target = hashTarget();
-    openProject(initial, { history: null, noFocus: true, target: target });
+    saved = landingView();
+    openProject(initial, { history: null, noFocus: true, target: target, instant: true });
     if (target === "case-study" && !caseEl.hidden) {
       // Web fonts and images can shift layout while loading; re-settle on the case study
       // as they arrive, unless the visitor has already scrolled away.
-      var settledY = window.scrollY;
-      var settle = function () {
-        if (Math.abs(window.scrollY - settledY) < 4 && isOpen() && !caseEl.hidden) { scrollToEl(caseEl, true); settledY = window.scrollY; }
+      var settledY = projectView.scrollTop;
+      var settleCS = function () {
+        if (Math.abs(projectView.scrollTop - settledY) < 4 && isOpen() && !caseEl.hidden) { scrollToEl(caseEl, true); settledY = projectView.scrollTop; }
       };
-      if (D.readyState !== "complete") window.addEventListener("load", settle, { once: true });
-      if (D.fonts && D.fonts.ready) D.fonts.ready.then(settle);
-      setTimeout(settle, 600);
+      if (D.readyState !== "complete") window.addEventListener("load", settleCS, { once: true });
+      if (D.fonts && D.fonts.ready) D.fonts.ready.then(settleCS);
+      setTimeout(settleCS, 600);
     }
+  } else if (!startList) {
+    // A quick, non-blocking intro: the file opens and settles on the title.
+    var land = landingView();
+    if (reduced()) cam.set(land);
+    else {
+      cam.set({ x: land.x, y: land.y + 40 / land.z, z: land.z * .9 });
+      root.classList.add("is-intro");
+      setTimeout(function () { root.classList.remove("is-intro"); }, 1400);
+      requestAnimationFrame(function () {
+        cam.animateTo(land, { duration: 900, force: true, ease: function (t) { return 1 - Math.pow(1 - t, 4); } });
+      });
+    }
+    hintTimer = setTimeout(dismissHint, 12000);
   }
-
-  var y = D.getElementById("year");
-  if (y) y.textContent = new Date().getFullYear();
+  if (D.fonts && D.fonts.ready) D.fonts.ready.then(function () { updateZoomLimits(); });
+  requestAnimationFrame(function () { root.classList.add("is-ready"); });
 })();

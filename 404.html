@@ -11,27 +11,42 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..600&amp;family=Instrument+Serif:ital@0;1&amp;display=swap">
   <style>
-    :root { --paper:#0E0D0C; --ink:#EEE8DE; --ink-2:#ABA396; --accent:#E8875C; --rule:rgba(238,232,222,.14); color-scheme: dark; }
+    :root { --bg:#0E0D0C; --ink:#EEE8DE; --ink-2:#ABA396; --ink-3:#8C8478; --accent:#E8875C; --line:rgba(238,232,222,.11); color-scheme: dark; }
     * { box-sizing: border-box; }
     html, body { height: 100%; }
-    body { margin:0; background:var(--paper); color:var(--ink); font-family:"Instrument Sans", system-ui, sans-serif;
-      display:flex; align-items:center; padding:clamp(1.25rem,5vw,4rem); -webkit-font-smoothing:antialiased; }
-    main { max-width:56rem; width:100%; }
-    .code { font-size:.75rem; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-2); margin:0 0 1.5rem; }
-    h1 { font-family:"Instrument Serif", Georgia, serif; font-weight:400; font-size:clamp(3rem,10vw,8rem);
-      line-height:.92; letter-spacing:-.035em; margin:0; }
+    body { margin:0; color:var(--ink); font-family:"Instrument Sans", system-ui, sans-serif; -webkit-font-smoothing:antialiased;
+      background-color:var(--bg);
+      background-image: radial-gradient(circle at center, rgba(238,232,222,.085) 0 1px, transparent 1.3px);
+      background-size: 24px 24px;
+      display:grid; place-items:center; padding:clamp(1.25rem,5vw,4rem); }
+    main { width:min(100%, 40rem); }
+    .label { margin:0 0 .6rem; font-size:.75rem; color:var(--ink-3); }
+    .frame { position:relative; padding:clamp(1.75rem,5vw,3rem); border-radius:8px; background:#151412;
+      box-shadow: 0 0 0 1px rgba(238,232,222,.07), 0 22px 44px -26px rgba(0,0,0,.75); }
+    .frame::after { content:""; position:absolute; inset:0; box-shadow:0 0 0 1.5px var(--accent); border-radius:0; pointer-events:none; }
+    .h { position:absolute; width:8px; height:8px; background:var(--ink); box-shadow:0 0 0 1.5px var(--accent); border-radius:1.5px; z-index:1; }
+    .tl { left:-4px; top:-4px; } .tr { right:-4px; top:-4px; } .bl { left:-4px; bottom:-4px; } .br { right:-4px; bottom:-4px; }
+    .code { font-size:.6875rem; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3); margin:0 0 1.25rem; display:flex; align-items:center; gap:.6rem; }
+    .code::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--accent); }
+    h1 { font-family:"Instrument Serif", Georgia, serif; font-weight:400; font-size:clamp(2.6rem,8vw,4.75rem); line-height:.95; letter-spacing:-.03em; margin:0; }
     h1 em { color:var(--accent); }
-    p.lede { margin:2rem 0 0; padding-top:1.25rem; border-top:1px solid var(--rule); color:var(--ink-2); max-width:40ch; line-height:1.6; }
-    a { color:var(--ink); text-underline-offset:.2em; text-decoration-thickness:1px; }
-    a:hover { color:var(--accent); }
+    p.lede { margin:1.5rem 0 0; color:var(--ink-2); line-height:1.6; }
+    .btn { display:inline-flex; align-items:center; gap:.5rem; margin-top:1.75rem; height:38px; padding:0 1rem; border-radius:999px;
+      color:var(--ink); text-decoration:none; font-size:.8125rem; box-shadow: inset 0 0 0 1px rgba(238,232,222,.22); transition: background-color .2s, color .2s; }
+    .btn:hover { background:var(--ink); color:var(--bg); }
     a:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
   </style>
 </head>
 <body>
   <main>
-    <p class="code">Error 404</p>
-    <h1>This page has <em>wandered off.</em></h1>
-    <p class="lede">The address may have changed. <a id="home" href="./">Return to the portfolio</a>.</p>
+    <p class="label">Frame not found</p>
+    <div class="frame">
+      <i class="h tl"></i><i class="h tr"></i><i class="h bl"></i><i class="h br"></i>
+      <p class="code">Error 404</p>
+      <h1>This page has <em>wandered off</em> the canvas.</h1>
+      <p class="lede">The address may have changed.</p>
+      <a class="btn" id="home" href="./">← Back to the portfolio</a>
+    </div>
   </main>
   <script>
     // Resolve the site root for both custom domains and GitHub project pages (user.github.io/repo/).
