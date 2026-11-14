@@ -651,6 +651,296 @@
   }
 
   /* =================================================================
+     SHOWCASE — a laptop and a phone at the top of each project canvas,
+     running a click-through prototype of the project's own screens.
+     ================================================================= */
+  var protoState = null;     // live prototype controllers for the open project
+
+  var PI = {
+    prev: '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>',
+    next: '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>',
+    restart: '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3.2 8a4.8 4.8 0 1 0 1.5-3.5M3 2.5v3h3" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
+    focus: '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>'
+  };
+
+  // flows from grouped media (Speaksynq) or a scrollable page (ASC)
+  function protoPlan(p) {
+    var media = frames;
+    var grouped = media.some(function (m) { return m.group; });
+    function flowsOf(group) {
+      var rows = [];
+      media.forEach(function (m) {
+        if (m.group !== group) return;
+        var r = null; rows.forEach(function (x) { if (x.title === m.row) r = x; });
+        if (!r) { r = { title: m.row, steps: [] }; rows.push(r); }
+        r.steps.push(m);
+      });
+      return rows;
+    }
+    if (grouped) return { mode: "flow", laptop: flowsOf("Web"), phone: flowsOf("Mobile") };
+    var desk = media.filter(function (m) { return !isPhone(m) && !m.kind; });
+    var ph = media.filter(isPhone);
+    if (desk.length || ph.length) return { mode: "page", laptop: desk, phone: ph };
+    return { mode: "empty" };
+  }
+
+  function shortFlow(t) {
+    // "A · Report …" -> "A";  "Flow 2 · …" -> "Flow 2"; "Onboarding (simplified)" -> "Onboarding"
+    var m = /^([A-E]) · /.exec(t); if (m) return m[1];
+    m = /^(Flow \d+)/.exec(t); if (m) return m[1];
+    return t.replace(/\s*\(.*\)$/, "");
+  }
+  function flowName(t) { return t.replace(/^[A-E] · /, "").replace(/^Flow \d+ · /, ""); }
+
+  function buildShowcase(p, X, y, narrow) {
+    var plan = protoPlan(p);
+    protoState = { devs: [] };
+    var wrap = D.createElement("section");
+    wrap.className = "showcase" + (narrow ? " is-narrow" : "");
+    wrap.setAttribute("aria-label", "Interactive prototype");
+    var lap = narrow ? 640 : 960, lapH = lap * 10 / 16;
+    var phW = narrow ? 330 : 290, phH = Math.round(phW * 852 / 393);
+    var blurb = plan.mode === "flow" ? "Click the screens, or use the arrows, to step through the flows."
+      : plan.mode === "page" ? "Scroll inside the screens, or jump with the section buttons."
+      : "Designs for this project are coming soon.";
+    wrap.innerHTML =
+      '<header class="sc-head">' +
+        '<div><p class="sc-k">' + (plan.mode === "empty" ? "Prototype" : "Interactive prototype") + "</p>" +
+        '<p class="sc-t">' + esc(blurb) + "</p></div>" +
+        (plan.mode === "empty" ? "" : '<button type="button" class="sc-focus" data-sc-focus="all" data-cam-ignore>' + PI.focus + "<span>Focus</span></button>") +
+      "</header>" +
+      '<div class="sc-devs">' +
+        '<figure class="dev dev--laptop" style="--sw:' + lap + 'px;--sh:' + lapH + 'px">' +
+          '<div class="dev-lid"><span class="dev-cam" aria-hidden="true"></span><div class="dev-screen" data-dev="laptop"></div><span class="dev-glare" aria-hidden="true"></span></div>' +
+          '<div class="dev-base" aria-hidden="true"><span></span></div>' +
+          '<figcaption class="dev-ctl" data-cam-ignore></figcaption>' +
+        "</figure>" +
+        '<figure class="dev dev--phone" style="--sw:' + phW + 'px;--sh:' + phH + 'px">' +
+          '<div class="dev-body"><div class="dev-screen" data-dev="phone"></div><span class="dev-glare" aria-hidden="true"></span></div>' +
+          '<figcaption class="dev-ctl" data-cam-ignore></figcaption>' +
+        "</figure>" +
+      "</div>";
+    pcWorld.appendChild(wrap);
+    place(wrap, X, y);
+    var figs = wrap.querySelectorAll(".dev");
+    ["laptop", "phone"].forEach(function (kind, k) {
+      var fig = figs[k], scr = fig.querySelector(".dev-screen"), ctl = fig.querySelector(".dev-ctl");
+      var data = plan.mode === "empty" ? null : plan[kind];
+      var c;
+      if (!data || !data.length) c = emptyDevice(p, kind, scr, ctl, plan.mode !== "empty");
+      else if (plan.mode === "flow") c = flowDevice(kind, data, scr, ctl);
+      else c = pageDevice(kind, data, scr, ctl);
+      c.fig = fig; c.kind = kind;
+      protoState.devs.push(c);
+      fig.querySelector(".dev-ctl").insertAdjacentHTML("beforeend",
+        plan.mode === "empty" ? "" : '<button type="button" class="dv-btn dv-focus" data-sc-focus="' + kind + '" aria-label="Focus the ' + kind + '" title="Focus">' + PI.focus + "</button>");
+    });
+    // measure in world units (the world is scaled, offset* is not)
+    var rect = { x: X, y: y, w: wrap.offsetWidth, h: wrap.offsetHeight };
+    protoState.rect = rect;
+    protoState.devRect = {};
+    [].forEach.call(figs, function (f, k) {
+      protoState.devRect[k ? "phone" : "laptop"] = { x: X + f.offsetLeft, y: y + f.offsetTop, w: f.offsetWidth, h: f.offsetHeight };
+    });
+    wrap.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-sc-focus]"); if (!b) return;
+      var key = b.dataset.scFocus;
+      var r = key === "all" ? rect : protoState.devRect[key];
+      pcam.animateTo(pcam.fit(pad4(r, 30, 30, 30, 30), pcPad(), 2), { duration: 560 });
+    });
+    return rect;
+  }
+
+  // keep the canvas camera out of the screens: pointer, wheel, pinch, double-click
+  function guardScreen(scr) {
+    scr.setAttribute("data-cam-ignore", "");
+    scr.addEventListener("wheel", function (e) { if (e.ctrlKey || e.metaKey) e.preventDefault(); }, { passive: false });
+    scr.addEventListener("dblclick", function (e) { e.stopPropagation(); });
+    ["gesturestart", "gesturechange"].forEach(function (t) { scr.addEventListener(t, function (e) { e.preventDefault(); e.stopPropagation(); }); });
+  }
+
+  function emptyDevice(p, kind, scr, ctl, hasOther) {
+    scr.classList.add("is-empty");
+    scr.innerHTML = '<div class="dev-empty"><span class="dev-empty-dot" aria-hidden="true"></span><p class="dev-empty-t">' +
+      (hasOther ? (kind === "phone" ? "Mobile design coming soon" : "Desktop design coming soon") : "Designs coming soon") + "</p>" +
+      '<p class="dev-empty-s">' + esc(p.title) + "</p></div>";
+    ctl.innerHTML = '<span class="dv-label">' + (kind === "phone" ? "Mobile" : "Desktop") + "</span>";
+    return { key: function () {} };
+  }
+
+  /* ---------- page mode: a real scrollable page inside the screen ---------- */
+  function pageDevice(kind, list, scr, ctl) {
+    guardScreen(scr);
+    scr.classList.add("is-page");
+    scr.tabIndex = 0;
+    scr.setAttribute("role", "region");
+    scr.setAttribute("aria-label", (kind === "phone" ? "Phone" : "Laptop") + " prototype: scroll to browse the " + (kind === "phone" ? "mobile" : "desktop") + " design");
+    scr.innerHTML = '<div class="dev-page">' + list.map(function (m, i) {
+      return '<img src="' + esc(m.src) + '" alt="' + esc(m.alt || m.caption || "") + '" width="' + esc(m.width) + '" height="' + esc(m.height) + '" loading="lazy" decoding="async" draggable="false" data-sec="' + i + '">';
+    }).join("") + "</div>";
+    var page = scr.querySelector(".dev-page");
+    var imgs = page.querySelectorAll("img");
+    ctl.innerHTML = '<span class="dv-label">' + (kind === "phone" ? "Mobile" : "Desktop") + '</span><span class="dv-secs">' + list.map(function (m, i) {
+      return '<button type="button" class="dv-sec" data-go="' + i + '"' + (i ? "" : ' aria-current="true"') + ">" + esc((m.caption || "").replace(/^Mobile — /, "")) + "</button>";
+    }).join("") + "</span>";
+    function go(i) { page.scrollTo({ top: imgs[i].offsetTop, behavior: reduced() ? "auto" : "smooth" }); }
+    ctl.addEventListener("click", function (e) { var b = e.target.closest("[data-go]"); if (b) go(+b.dataset.go); });
+    page.addEventListener("scroll", function () {
+      var t = page.scrollTop + 4, cur = 0;
+      for (var i = 0; i < imgs.length; i++) if (imgs[i].offsetTop <= t) cur = i;
+      [].forEach.call(ctl.querySelectorAll("[data-go]"), function (b) { if (+b.dataset.go === cur) b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current"); });
+    }, { passive: true });
+    // mouse: drag to scroll, like a phone
+    var dr = null;
+    page.addEventListener("pointerdown", function (e) {
+      if (e.pointerType !== "mouse" || e.button !== 0) return;
+      dr = { y: e.clientY, top: page.scrollTop, moved: false };
+      try { page.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    page.addEventListener("pointermove", function (e) {
+      if (!dr) return;
+      var s = pcam ? pcam.get().z : 1, dy = (e.clientY - dr.y) / s;
+      if (Math.abs(dy) > 3) { dr.moved = true; page.classList.add("is-dragging"); }
+      page.scrollTop = dr.top - dy;
+    });
+    function end() { dr = null; page.classList.remove("is-dragging"); }
+    page.addEventListener("pointerup", end); page.addEventListener("pointercancel", end);
+    return {
+      key: function (e) {
+        var h = page.clientHeight;
+        if (e.key === "ArrowDown") page.scrollBy({ top: 120 }); else if (e.key === "ArrowUp") page.scrollBy({ top: -120 });
+        else if (e.key === "PageDown" || e.key === " ") page.scrollBy({ top: h * .9 }); else if (e.key === "PageUp") page.scrollBy({ top: -h * .9 });
+        else if (e.key === "Home") page.scrollTo({ top: 0 }); else if (e.key === "End") page.scrollTo({ top: page.scrollHeight });
+        else return false;
+        return true;
+      }
+    };
+  }
+
+  /* ---------- flow mode: click-through of the real screens ---------- */
+  function flowDevice(kind, flows, scr, ctl) {
+    guardScreen(scr);
+    scr.classList.add("is-flow");
+    scr.tabIndex = 0;
+    scr.setAttribute("role", "group");
+    scr.setAttribute("aria-roledescription", "prototype");
+    var st = { f: 0, s: 0 };
+    scr.innerHTML = '<div class="dev-layer is-on"></div><div class="dev-layer"></div><button type="button" class="dev-hot" tabindex="-1" aria-hidden="true"></button><p class="sr dev-live" aria-live="polite"></p>';
+    var layers = scr.querySelectorAll(".dev-layer"), hot = scr.querySelector(".dev-hot"), live = scr.querySelector(".dev-live");
+    var front = 0;
+    ctl.innerHTML =
+      '<span class="dv-flows" role="group" aria-label="Flows">' + flows.map(function (f, i) {
+        return '<button type="button" class="dv-flow" data-flow="' + i + '" title="' + esc(f.title) + '"' + (i ? "" : ' aria-pressed="true"') + ">" + esc(shortFlow(f.title)) + "</button>";
+      }).join("") + "</span>" +
+      '<span class="dv-step">' +
+        '<button type="button" class="dv-btn" data-step="-1" aria-label="Previous screen">' + PI.prev + "</button>" +
+        '<span class="dv-count"></span>' +
+        '<button type="button" class="dv-btn" data-step="1" aria-label="Next screen">' + PI.next + "</button>" +
+        '<button type="button" class="dv-btn" data-restart aria-label="Restart flow" title="Restart">' + PI.restart + "</button>" +
+      "</span>" +
+      '<span class="dv-cap"></span>';
+    var count = ctl.querySelector(".dv-count"), cap = ctl.querySelector(".dv-cap");
+    var prevB = ctl.querySelector('[data-step="-1"]');
+
+    function img(m) { return '<img src="' + esc(m.src) + '" alt="' + esc(m.alt || m.caption || "") + '" width="' + esc(m.width) + '" height="' + esc(m.height) + '" decoding="async" draggable="false">'; }
+    function preload(m) { if (m) { var i = new Image(); i.decoding = "async"; i.src = m.src; } }
+    function render(dir) {
+      var flow = flows[st.f], m = flow.steps[st.s];
+      var back = layers[1 - front], cur = layers[front];
+      back.innerHTML = img(m);
+      back.scrollTop = 0;
+      var show = function () {
+        back.classList.remove("from-l", "from-r");
+        if (!reduced() && dir) back.classList.add(dir > 0 ? "from-r" : "from-l");
+        void back.offsetWidth;
+        back.classList.add("is-on"); back.classList.remove("from-l", "from-r");
+        cur.classList.remove("is-on");
+        front = 1 - front;
+      };
+      var im = back.querySelector("img");
+      if (im.complete) show(); else { im.onload = show; im.onerror = show; }
+      // hotspot on the real button, when the design has one
+      if (m.hot) {
+        hot.hidden = false;
+        hot.style.cssText = "left:" + m.hot[0] * 100 + "%;top:" + m.hot[1] * 100 + "%;width:" + m.hot[2] * 100 + "%;height:" + m.hot[3] * 100 + "%;";
+        hot.classList.remove("is-pulse"); void hot.offsetWidth; hot.classList.add("is-pulse");
+      } else hot.hidden = true;
+      var n = flow.steps.length;
+      count.innerHTML = "<b>" + pad(st.s + 1) + "</b> / " + pad(n);
+      cap.textContent = m.caption || "";
+      cap.title = flowName(flow.title) + " — " + (m.caption || "");
+      prevB.disabled = st.s === 0;
+      [].forEach.call(ctl.querySelectorAll("[data-flow]"), function (b) { b.setAttribute("aria-pressed", +b.dataset.flow === st.f ? "true" : "false"); });
+      scr.setAttribute("aria-label", (kind === "phone" ? "Phone" : "Laptop") + " prototype, " + flow.title + ", screen " + (st.s + 1) + " of " + n + ": " + (m.caption || "") + ". Press the right arrow or click to continue.");
+      live.textContent = (m.caption || "") + ", " + (st.s + 1) + " of " + n;
+      preload(flow.steps[st.s + 1]);
+    }
+    function step(d) {
+      var n = flows[st.f].steps.length;
+      var s = st.s + d;
+      if (s >= n) s = 0;            // past the end: start the flow again
+      if (s < 0) return;
+      st.s = s; render(d);
+    }
+    function setFlow(i) { st.f = i; st.s = 0; render(1); }
+    scr.addEventListener("click", function (e) {
+      if (e.button) return;
+      var r = scr.getBoundingClientRect();
+      // the left fifth goes back, everything else moves on
+      step(e.clientX - r.left < r.width * .2 && st.s > 0 ? -1 : 1);
+    });
+    // wheel / trackpad: one screen per gesture
+    var wlock = 0;
+    scr.addEventListener("wheel", function (e) {
+      if (e.ctrlKey || e.metaKey) return;
+      var lay = layers[front];
+      if (lay.scrollHeight > lay.clientHeight + 2) {           // a tall screen scrolls first
+        var atTop = lay.scrollTop <= 0, atEnd = lay.scrollTop + lay.clientHeight >= lay.scrollHeight - 2;
+        if ((e.deltaY > 0 && !atEnd) || (e.deltaY < 0 && !atTop)) return;
+      }
+      e.preventDefault();
+      var now = Date.now(), d = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+      if (Math.abs(d) < 12 || now < wlock) return;
+      wlock = now + 450;
+      step(d > 0 ? 1 : -1);
+    }, { passive: false });
+    // touch: swipe left / right
+    var sw = null;
+    scr.addEventListener("touchstart", function (e) { if (e.touches.length === 1) sw = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() }; }, { passive: true });
+    scr.addEventListener("touchend", function (e) {
+      if (!sw) return; var t = e.changedTouches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y; sw = null;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.3) { e.preventDefault(); step(dx < 0 ? 1 : -1); }
+    });
+    ctl.addEventListener("click", function (e) {
+      var b = e.target.closest("button"); if (!b) return;
+      if (b.dataset.flow != null) setFlow(+b.dataset.flow);
+      else if (b.dataset.step) step(+b.dataset.step);
+      else if (b.hasAttribute("data-restart")) { st.s = 0; render(-1); }
+    });
+    render(0);
+    return {
+      key: function (e) {
+        if (e.key === "ArrowRight" || e.key === " " || e.key === "Enter") step(1);
+        else if (e.key === "ArrowLeft") step(-1);
+        else if (e.key === "Home") { st.s = 0; render(-1); }
+        else if (e.key === "End") { st.s = flows[st.f].steps.length - 1; render(1); }
+        else if (e.key === "ArrowDown" || e.key === "ArrowUp") { setFlow((st.f + (e.key === "ArrowDown" ? 1 : flows.length - 1)) % flows.length); }
+        else return false;
+        return true;
+      }
+    };
+  }
+
+  // arrow keys inside a focused device drive the prototype, not the camera
+  pcWorld.addEventListener("keydown", function (e) {
+    var scr = e.target.closest && e.target.closest(".dev-screen");
+    if (!scr || !protoState) return;
+    var dev = null;
+    protoState.devs.forEach(function (d) { if (d.fig.contains(scr)) dev = d; });
+    if (dev && dev.key(e)) { e.preventDefault(); e.stopPropagation(); }
+  });
+
+  /* =================================================================
      PROJECT CANVAS — a second pannable space per project:
      a title note, a "Web" row of desktop frames, a "Mobile" row of
      phone frames, and the case study (when there is one).
@@ -714,6 +1004,9 @@
     }
 
     var X = narrow ? 0 : 480, y = narrow ? noteR.h + 120 : 0;
+    var scRect = buildShowcase(p, X, y, narrow);
+    rs.push(scRect);
+    y += scRect.h + (narrow ? 200 : 260);
     function addRow(label, list, w, isPh) {
       var sec = D.createElement("p");
       sec.className = "cv-sec pc-sec"; sec.setAttribute("aria-hidden", "true");
@@ -806,7 +1099,7 @@
     if (desk.length) addRow("Web", desk, narrow ? 400 : 640, false);
       if (phone.length) addRow("Mobile", phone, narrow ? 200 : 300, true);
       if (cs && narrow) { place(cs, 0, y - 40, 400); rs.push(elRect(cs)); }
-      if (!desk.length && !phone.length) {
+      if (false && !desk.length && !phone.length) {
         var ph = D.createElement("div");
         ph.className = "pc-empty";
         ph.innerHTML = '<p class="cv-sec pc-sec" aria-hidden="true">Designs</p>' +
@@ -825,7 +1118,11 @@
     var rowFirst = grouped ? pcFirst.slice(0, narrow ? 1 : 3)
       : pcItems.filter(function (it) { return it.el.classList.contains("is-phone-ab") === (desk.length === 0); }).slice(0, narrow ? 1 : 2);
     var first = [noteR].concat(rowFirst.map(function (it) { return { x: it.x, y: it.y, w: it.w, h: Math.min(it.h, narrow ? 420 : 900) }; }));
-    pcStart = pcItems.length ? pad4(union(first), 70, 20, 20, 20) : pcAll;
+    // open on the showcase (title note + devices); phones start on the laptop
+    pcStart = narrow
+      ? pad4(union([noteR, { x: scRect.x, y: scRect.y, w: scRect.w, h: protoState.devRect.laptop.y + protoState.devRect.laptop.h + 150 - scRect.y }]), 20, 10, 10, 10)
+      : pad4(union([noteR, scRect]), 50, 20, 20, 20);
+    pcGroups = Object.assign({ Prototype: { x: scRect.x - 40, y: scRect.y - 40, w: scRect.w + 80, h: scRect.h + 80 } }, pcGroups);
     pcCsBtn.hidden = !p.caseStudy;
     var names = Object.keys(pcGroups);
     pcChips.hidden = names.length < 2;
@@ -867,7 +1164,7 @@
   function initPcam() {
     pcam = new window.Camera(pcVp, pcWorld, {
       reduceMotion: reduced,
-      isFrame: function (t) { return t && t.closest && t.closest(".pc-ab, .pc-note, .pc-case"); }
+      isFrame: function (t) { return t && t.closest && t.closest(".pc-ab, .pc-note, .pc-case, .showcase"); }
     });
     pcam.onChange(function (x, y, z) { pcZoom.textContent = Math.round(z * 100) + "%"; pcWorld.classList.toggle("is-far", z < .16); });
   }
@@ -1068,7 +1365,7 @@
       return '<section class="lv-group" aria-labelledby="lv-' + s.key + '">' +
         '<h3 class="lv-sec" id="lv-' + s.key + '">' + esc(s.label) + ' <span>' + pad(list.length) + "</span></h3>" +
         '<ol class="lv-list">' + list.map(function (p) {
-          var sub = [tagOf(p), p.year, mediaOf(p).length && p.slug !== "action-sports-club" ? "Designs" : ""].filter(Boolean).join(" · ");
+          var sub = [tagOf(p), p.year, mediaOf(p).length ? "Interactive prototype" : ""].filter(Boolean).join(" · ");
           return '<li><a class="lv-item" href="?project=' + encodeURIComponent(p.slug) + '" data-slug="' + esc(p.slug) + '">' +
             '<span class="lv-thumb lv-sticky pn--' + p.color + '" aria-hidden="true" style="--r:' + p.tilt + 'deg"><span>' + esc(p.title) + "</span></span>" +
             '<span class="lv-text"><span class="lv-name">' + esc(p.title) + (p.award ? '<span class="lv-award" title="Award">' + ICON.star + '<span class="sr">Award</span></span>' : "") + "</span>" +

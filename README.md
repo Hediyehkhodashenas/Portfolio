@@ -34,3 +34,11 @@ All paths are relative, so it works there and straight from disk (`file://`). `.
 
 ## Controls
 Drag to pan (mouse or touch) · two-finger trackpad scroll pans · pinch or ctrl/⌘ + scroll zooms · double-click empty canvas to zoom in · arrow keys / WASD pan · `+` / `−` zoom · `0` fit all · `1` 100% · Tab moves through notes and frames, Enter opens · Esc steps back one level (lightbox → case study → project canvas → home). On the project canvas, clicking a frame fits it to the screen, and clicking it again opens it full size. `prefers-reduced-motion` turns camera moves into instant cuts.
+
+## Device showcase (interactive prototype)
+
+Every project canvas opens with a CSS-drawn laptop and phone above the design frames.
+
+- Projects with grouped `Web` / `Mobile` rows (Speaksynq) become a click-through prototype: each row is a flow. Click the screen (left edge = back), use the arrows, swipe, wheel, or keys (←/→, Space, Home/End, ↑/↓ to switch flow). An optional `hot: [x, y, w, h]` (fractions of the frame) marks the real button on a screen.
+- Projects with plain desktop/phone media (Action Sports Club) show the designs as scrollable pages with section buttons.
+- Projects without media show "Designs coming soon".
