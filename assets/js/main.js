@@ -61,7 +61,7 @@
   function mediaOf(p) {
     return (p.media || []).filter(function (m) { return m && m.src && !broken[m.src]; });
   }
-  function isPhone(m) { return m.width && Number(m.width) <= 500; }
+  function isPhone(m) { return !m.kind && m.width && Number(m.width) <= 500; }
   function behavior() { return reduceMQ.matches ? "auto" : "smooth"; }
   function reduced() { return reduceMQ.matches; }
   function hash(str) { var h = 0; for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0; return Math.abs(h); }
@@ -658,6 +658,18 @@
   var pcItems = [];          // artboards on the project canvas { el, x, y, w, h, i }
   var pcStart = null;        // rect the project canvas opens on
   var pcAll = null;          // all content
+  var pcGroups = {}, pcFirst = [];
+  var pcChips = D.createElement("nav");
+  pcChips.className = "tb-chips pc-chips"; pcChips.setAttribute("aria-label", "Project sections"); pcChips.hidden = true;
+  D.querySelector(".pc-top").insertBefore(pcChips, pcCsBtn);
+  pcChips.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-pgroup]"); if (!b) return;
+    var r = pcGroups[b.dataset.pgroup]; if (!r) return;
+    var sz = pcam.size(), pd = pcPad();
+    var aw = sz.w - pd.l - pd.r, ah = sz.h - pd.t - pd.b;
+    // fit the section's width and land on its top
+    pcam.animateTo(pcam.fit({ x: r.x, y: r.y, w: r.w, h: Math.min(r.h, r.w * ah / aw) }, pd), { duration: 600 });
+  });
 
   function pcSecHTML(label, n) { return esc(label) + (n ? ' <span class="cv-sec-n">' + pad(n) + "</span>" : ""); }
 
@@ -729,32 +741,125 @@
       });
       y += maxH + (narrow ? 120 : 150);
     }
+    var grouped = frames.some(function (m) { return m.group; });
+    pcGroups = {};
+    if (grouped) {
+      var CFG = narrow
+        ? { Web: [400, 3, 56], Mobile: [200, 4, 40] }
+        : { Web: [480, 7, 64], Mobile: [220, 13, 48] };
+      var groups = [];
+      frames.forEach(function (m) {
+        var g = null; groups.forEach(function (x) { if (x.name === m.group) g = x; });
+        if (!g) { g = { name: m.group, rows: [] }; groups.push(g); }
+        var r = null; g.rows.forEach(function (x) { if (x.title === m.row) r = x; });
+        if (!r) { r = { title: m.row, list: [] }; g.rows.push(r); }
+        r.list.push(m);
+      });
+      var LINE = narrow ? 1360 : 3744;
+      var firstItems = null;
+      groups.forEach(function (g) {
+        var g0 = y;
+        var gh = D.createElement("h3");
+        gh.className = "pc-group-h"; gh.textContent = g.name;
+        pcWorld.appendChild(gh); place(gh, X, y);
+        y += narrow ? 150 : 190;
+        g.rows.forEach(function (r) {
+          var rh = D.createElement("p");
+          rh.className = "pc-row-h";
+          rh.innerHTML = esc(r.title) + ' <span>' + pad(r.list.length) + "</span>";
+          pcWorld.appendChild(rh); place(rh, X, y);
+          y += 70;
+          var cfg = CFG[g.name], items = [];
+          if (cfg) {
+            // a flow: frames in order, wrapping into lines, arrows between steps
+            var w = cfg[0], cols = cfg[1], gap = cfg[2], lineH = 0;
+            r.list.forEach(function (m, k) {
+              var col = k % cols;
+              if (col === 0 && k) { y += lineH + 56 + 40; lineH = 0; }
+              var x = X + col * (w + gap), h = Math.round(w * m.height / m.width);
+              items.push(addFrame(m, x, y + 40, w, h, g.name === "Mobile", k + 1));
+              if (col > 0) addArrow(x - gap, y + 40 + Math.min(h, w * 1.2) / 2, gap);
+              lineH = Math.max(lineH, h);
+            });
+            y += lineH + 40;
+          } else {
+            // boards and components: shelf-packed at a calm size
+            var kind = r.list[0].kind;
+            var x0 = X, lh = 0, sh = kind === "component" ? 0 : (narrow ? 640 : 1000);
+            r.list.forEach(function (m) {
+              var w = sh ? Math.round(sh * m.width / m.height) : m.width, h = sh || m.height;
+              if (narrow && sh && w > LINE) { w = LINE; h = Math.round(LINE * m.height / m.width); }
+              if (x0 > X && x0 + w > X + LINE) { x0 = X; y += lh + 100; lh = 0; }
+              items.push(addFrame(m, x0, y + 40, w, h, false, 0, kind));
+              x0 += w + (kind === "component" ? 56 : 80); lh = Math.max(lh, h);
+            });
+            y += lh + 40;
+          }
+          if (!firstItems) firstItems = items;
+          y += narrow ? 120 : 150;
+        });
+        pcGroups[g.name] = { x: X - 40, y: g0 - 40, w: LINE + 80, h: y - g0 };
+        y += narrow ? 80 : 140;
+      });
+      pcFirst = firstItems || [];
+    } else {
     if (desk.length) addRow("Web", desk, narrow ? 400 : 640, false);
-    if (phone.length) addRow("Mobile", phone, narrow ? 200 : 300, true);
-    if (cs && narrow) { place(cs, 0, y - 40, 400); rs.push(elRect(cs)); }
-    if (!desk.length && !phone.length) {
-      var ph = D.createElement("div");
-      ph.className = "pc-empty";
-      ph.innerHTML = '<p class="cv-sec pc-sec" aria-hidden="true">Designs</p>' +
-        '<div class="pc-empty-in"><span class="pc-empty-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><rect x="3.5" y="5" width="17" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M9 19.5h6M12 16v3.5" stroke="currentColor" stroke-width="1.3"/></svg></span>' +
-        '<p class="pc-empty-t">Designs coming soon</p></div>';
-      pcWorld.appendChild(ph);
-      var pw = narrow ? 400 : 720, phh = narrow ? 300 : 460;
-      place(ph, X, y, pw);
-      ph.style.height = phh + "px";
-      rs.push({ x: X, y: y, w: pw, h: phh });
+      if (phone.length) addRow("Mobile", phone, narrow ? 200 : 300, true);
+      if (cs && narrow) { place(cs, 0, y - 40, 400); rs.push(elRect(cs)); }
+      if (!desk.length && !phone.length) {
+        var ph = D.createElement("div");
+        ph.className = "pc-empty";
+        ph.innerHTML = '<p class="cv-sec pc-sec" aria-hidden="true">Designs</p>' +
+          '<div class="pc-empty-in"><span class="pc-empty-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><rect x="3.5" y="5" width="17" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M9 19.5h6M12 16v3.5" stroke="currentColor" stroke-width="1.3"/></svg></span>' +
+          '<p class="pc-empty-t">Designs coming soon</p></div>';
+        pcWorld.appendChild(ph);
+        var pw = narrow ? 400 : 720, phh = narrow ? 300 : 460;
+        place(ph, X, y, pw);
+        ph.style.height = phh + "px";
+        rs.push({ x: X, y: y, w: pw, h: phh });
+      }
     }
     pcAll = pad4(union(rs), 70, 20, 20, 20);
     // open on the title note + the first frames of each row
     // open on the title note + the first frames of the first row
-    var rowFirst = pcItems.filter(function (it) { return it.el.classList.contains("is-phone-ab") === (desk.length === 0); }).slice(0, narrow ? 1 : 2);
+    var rowFirst = grouped ? pcFirst.slice(0, narrow ? 1 : 3)
+      : pcItems.filter(function (it) { return it.el.classList.contains("is-phone-ab") === (desk.length === 0); }).slice(0, narrow ? 1 : 2);
     var first = [noteR].concat(rowFirst.map(function (it) { return { x: it.x, y: it.y, w: it.w, h: Math.min(it.h, narrow ? 420 : 900) }; }));
     pcStart = pcItems.length ? pad4(union(first), 70, 20, 20, 20) : pcAll;
     pcCsBtn.hidden = !p.caseStudy;
+    var names = Object.keys(pcGroups);
+    pcChips.hidden = names.length < 2;
+    pcChips.innerHTML = names.map(function (n) { return '<button type="button" class="chip" data-pgroup="' + esc(n) + '">' + esc(n) + "</button>"; }).join("");
+
+    function addFrame(m, x, fy, w, h, isPh, step, kind) {
+      var i = frames.indexOf(m);
+      var a = D.createElement("button");
+      a.type = "button";
+      a.className = "ab ab--img pc-ab pc-fr" + (isPh ? " is-phone-ab" : "") + (kind ? " pc-fr--" + kind : "");
+      a.setAttribute("aria-label", (step ? "Step " + step + ": " : "") + (m.caption || "") + ". " + (m.alt || "") + ". Zoom to frame");
+      a.innerHTML =
+        '<span class="pc-cap" aria-hidden="true">' + (step ? "<b>" + pad(step) + "</b>" : "") + esc(m.caption || "") + "</span>" +
+        '<span class="ab-frame ab-img"><img src="' + esc(m.src) + '" alt="" width="' + esc(m.width) + '" height="' + esc(m.height) + '" loading="lazy" decoding="async" draggable="false"></span>' +
+        '<span class="ab-sel" aria-hidden="true"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i></span>';
+      a.style.cssText = "left:" + x + "px;top:" + fy + "px;width:" + w + "px;height:" + h + "px;";
+      a.dataset.i = i;
+      pcWorld.appendChild(a);
+      var it = { el: a, x: x, y: fy, w: w, h: h, i: i };
+      pcItems.push(it); rs.push(it);
+      return it;
+    }
+    function addArrow(x, ay, gap) {
+      var ar = D.createElement("span");
+      ar.className = "pc-arrow"; ar.setAttribute("aria-hidden", "true");
+      ar.innerHTML = '<svg viewBox="0 0 24 12" width="24" height="12"><path d="M1 6h20M16 1.5 21 6l-5 4.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
+      ar.style.cssText = "left:" + x + "px;top:" + (ay - 6) + "px;width:" + gap + "px;";
+      pcWorld.appendChild(ar);
+    }
   }
 
-  function pcPad() { return isNarrow() ? { t: 76, r: 12, b: 84, l: 12 } : { t: 84, r: 40, b: 88, l: 40 }; }
+  function pcPad() { return isNarrow() ? { t: pcChips.hidden ? 76 : 136, r: 12, b: 84, l: 12 } : { t: 84, r: 40, b: 88, l: 40 }; }
   function pcLimits() {
+    pcam.setZoomLimits(.005, 2.5);
     var f = pcam.fit(pcAll, pcPad());
     pcam.setZoomLimits(Math.min(.15, f.z * .8), 2.5);
     pcam.setBounds(pcAll);
@@ -764,7 +869,7 @@
       reduceMotion: reduced,
       isFrame: function (t) { return t && t.closest && t.closest(".pc-ab, .pc-note, .pc-case"); }
     });
-    pcam.onChange(function (x, y, z) { pcZoom.textContent = Math.round(z * 100) + "%"; });
+    pcam.onChange(function (x, y, z) { pcZoom.textContent = Math.round(z * 100) + "%"; pcWorld.classList.toggle("is-far", z < .16); });
   }
   D.getElementById("pc-hud").addEventListener("click", function (e) {
     var zb = e.target.closest("[data-pzoom]");
@@ -963,7 +1068,7 @@
       return '<section class="lv-group" aria-labelledby="lv-' + s.key + '">' +
         '<h3 class="lv-sec" id="lv-' + s.key + '">' + esc(s.label) + ' <span>' + pad(list.length) + "</span></h3>" +
         '<ol class="lv-list">' + list.map(function (p) {
-          var sub = [tagOf(p), p.year].filter(Boolean).join(" · ");
+          var sub = [tagOf(p), p.year, mediaOf(p).length && p.slug !== "action-sports-club" ? "Designs" : ""].filter(Boolean).join(" · ");
           return '<li><a class="lv-item" href="?project=' + encodeURIComponent(p.slug) + '" data-slug="' + esc(p.slug) + '">' +
             '<span class="lv-thumb lv-sticky pn--' + p.color + '" aria-hidden="true" style="--r:' + p.tilt + 'deg"><span>' + esc(p.title) + "</span></span>" +
             '<span class="lv-text"><span class="lv-name">' + esc(p.title) + (p.award ? '<span class="lv-award" title="Award">' + ICON.star + '<span class="sr">Award</span></span>' : "") + "</span>" +

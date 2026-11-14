@@ -21,7 +21,7 @@ All paths are relative, so it works there and straight from disk (`file://`). `.
 
 ## Editing
 - Projects: `assets/js/projects.js`. `context` is the short tag on the sticky note (falls back to the category). `category` sets the group on the home canvas (`digital`, `visual`, `engineering`). Note colours cycle through yellow, pink, mint, lavender, peach and sky in display order, and each note gets a small fixed tilt.
-- Images: put files in `assets/work/<slug>/` and list them in that project's `media` array. Frames with `width <= 500` go in the Mobile row, all others in the Web row. A project with no media shows the "Designs coming soon" placeholder.
+- Images: put files in `assets/work/<slug>/` and list them in that project's `media` array. Frames with `width <= 500` go in the Mobile row, all others in the Web row. A project with no media shows the "Designs coming soon" placeholder. For bigger sets (see Speaksynq), give each media item a `group` (section title, e.g. "Web"), a `row` (flow title) and optionally `kind` ("board" or "component"). Frames then appear in labelled rows, in order, with arrows between steps, and the top bar gets section chips.
 - Home layout: `layoutHome()` in `main.js` (separate wide and phone layouts). Units are canvas px at 100% zoom.
 - Info notes: edit their text in `index.html` (`<aside class="note">`). The list view reuses the same text.
 - Case study: a project can carry an optional `caseStudy` object. It opens from the project canvas (the "Case study" button or card). `index.html?project=action-sports-club#case-study` lands on it directly. Images live in `assets/work/<slug>/case-study/`.

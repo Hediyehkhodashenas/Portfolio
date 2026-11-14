@@ -724,3 +724,40 @@ html:not(.js) .tb-chips { display: none; }
 .lv-thumb.lv-sticky { aspect-ratio: 5 / 2; }
 .lv-thumb.lv-sticky span { font-size: 1.45rem; }
 .lv-note .note-mail { color: var(--ink); font-size: 1rem; word-break: break-word; }
+
+/* ---------- Grouped project canvas (flows, design system) ---------- */
+.pc-group-h {
+  position: absolute; margin: 0; white-space: nowrap; pointer-events: none;
+  font-family: var(--serif); font-weight: 400; font-size: 120px; line-height: 1; letter-spacing: -.025em; color: var(--ink);
+}
+.pc-row-h {
+  position: absolute; margin: 0; white-space: nowrap; pointer-events: none;
+  font-size: 30px; font-weight: 500; letter-spacing: -.005em; color: var(--ink-2);
+  padding-top: 18px; border-top: 1px solid var(--line-2); width: 3744px;
+}
+.pc-row-h span { color: var(--ink-3); font-size: .7em; font-variant-numeric: tabular-nums; margin-left: .3em; }
+.pc-fr .pc-cap {
+  position: absolute; left: 0; bottom: 100%; margin-bottom: 10px; max-width: 100%;
+  display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left;
+  font-size: 15px; line-height: 1.2; color: var(--ink-2); transition: color .2s;
+}
+.pc-fr.is-phone-ab .pc-cap { font-size: 12px; }
+.pc-fr--board .pc-cap { font-size: 24px; margin-bottom: 14px; }
+.pc-fr--component .pc-cap { font-size: 14px; }
+.pc-cap b { font-weight: 600; color: var(--ink-3); margin-right: .55em; font-variant-numeric: tabular-nums; }
+.pc-fr:hover .pc-cap, .pc-fr:focus-visible .pc-cap { color: var(--accent); }
+.pc-fr .ab-frame { border-radius: 6px; }
+.pc-fr.is-phone-ab .ab-frame { border-radius: 14px; }
+.pc-fr--component .ab-frame { border-radius: 12px; background: #1C1C1F; }
+.pc-fr--board .ab-frame { border-radius: 10px; }
+.pc-arrow { position: absolute; display: flex; justify-content: center; color: var(--ink-3); opacity: .7; pointer-events: none; }
+.pc-arrow svg { width: 50%; max-width: 30px; height: auto; }
+.pc-world.is-far .pc-cap, .pc-world.is-far .pc-arrow { opacity: 0; }
+.pc-chips { margin-left: auto; }
+.pc-chips[hidden] { display: none; }
+.pc-chips + .pc-cs-btn { margin-left: 0; }
+@media (max-width: 720px) {
+  .pc-row-h { width: 1360px; font-size: 34px; }
+  .pc-chips { order: 3; width: 100%; margin-left: 0; }
+  .pc-top { flex-wrap: wrap; row-gap: 8px; }
+}
