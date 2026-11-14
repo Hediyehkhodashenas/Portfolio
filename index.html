@@ -33,6 +33,13 @@
       <span class="tb-sep" aria-hidden="true">/</span>
       <span class="tb-page">Portfolio</span>
     </a>
+    <nav class="tb-chips" id="tb-chips" aria-label="Sections">
+      <button type="button" class="chip" data-zone="projects">Projects</button>
+      <button type="button" class="chip" data-zone="about">About</button>
+      <button type="button" class="chip" data-zone="experience">Experience</button>
+      <button type="button" class="chip" data-zone="education">Education</button>
+      <button type="button" class="chip" data-zone="contact">Contact</button>
+    </nav>
     <div class="tb-right">
       <div class="seg" role="group" aria-label="View">
         <button type="button" class="seg-btn" data-view="canvas" aria-pressed="true">
@@ -50,7 +57,7 @@
 
   <main id="main">
     <!-- ============ CANVAS (default view) ============ -->
-    <section class="canvas" id="canvas" aria-label="Design canvas: drag to explore, open a frame to see the project">
+    <section class="canvas" id="canvas" aria-label="Design canvas: drag to explore, open a sticky note to see the project">
       <div class="cv-viewport" id="cv-viewport">
         <div class="cv-world" id="cv-world">
 
@@ -69,7 +76,7 @@
 
           <!-- Sticky notes: real, short content only -->
           <aside class="note note--sand" id="note-about" data-x="-440" data-y="190" data-r="-1.5" aria-labelledby="note-about-h">
-            <h2 class="note-h" id="note-about-h">About</h2>
+            <h2 class="note-h" id="note-about-h">About me</h2>
             <p class="note-lead">Designer in Istanbul. UI/UX, visual design and product thinking, grounded in industrial engineering.</p>
             <p class="note-small"><span>Toolkit</span> Figma · Photoshop · Canva · Wix · Premiere</p>
           </aside>
@@ -100,27 +107,16 @@
           </aside>
 
           <aside class="note note--clay" id="note-contact" data-r="-1.2" aria-labelledby="note-contact-h">
-            <h2 class="note-h" id="note-contact-h">Say hello</h2>
+            <h2 class="note-h" id="note-contact-h">Contact</h2>
             <a class="note-mail" href="mailto:hediyehkhodashenas.contact@gmail.com">hediyehkhodashenas<wbr>.contact<wbr>@gmail.com</a>
           </aside>
         </div>
       </div>
 
-      <p class="cv-hint" id="cv-hint" aria-hidden="true"><span class="cv-hint-fine">Drag to explore · Click a frame</span><span class="cv-hint-touch">Drag to explore · Tap a frame</span></p>
+      <p class="cv-hint" id="cv-hint" aria-hidden="true"><span class="cv-hint-fine">Drag to explore · Click a note</span><span class="cv-hint-touch">Drag to explore · Tap a note</span></p>
 
-      <!-- HUD: sections, zoom, fit -->
+      <!-- HUD: zoom, fit -->
       <div class="hud" id="hud" role="toolbar" aria-label="Canvas controls">
-        <div class="hud-jump">
-          <button type="button" class="hud-btn hud-sections" id="hud-sections" aria-expanded="false" aria-controls="hud-menu">
-            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h7" stroke="currentColor" stroke-width="1.3" fill="none"/></svg>
-            <span id="hud-where">Sections</span>
-          </button>
-          <div class="hud-menu" id="hud-menu" hidden>
-            <p class="hud-menu-h">Jump to</p>
-            <ul id="hud-menu-list"></ul>
-          </div>
-        </div>
-        <span class="hud-div" aria-hidden="true"></span>
         <button type="button" class="hud-btn hud-icon" data-zoom="-1" aria-label="Zoom out" title="Zoom out (−)">
           <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3.5 8h9" stroke="currentColor" stroke-width="1.4"/></svg>
         </button>
@@ -153,26 +149,46 @@
       </div>
     </section>
 
-    <!-- ============ PROJECT VIEW: opens over the canvas, scrolls on its own ============ -->
+    <!-- ============ PROJECT CANVAS: a second canvas per project, over the home canvas ============ -->
     <div class="project-view" id="project-view" role="dialog" aria-modal="true" aria-label="Project" hidden>
-      <div class="pv-bar">
+      <div class="pc-viewport" id="pc-viewport">
+        <div class="cv-world pc-world" id="pc-world"></div>
+      </div>
+      <div class="pc-top">
         <a class="pv-back" id="pv-back" href="./">
           <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
-          <span id="pv-back-label">Canvas</span>
+          <span id="pv-back-label">Home</span>
         </a>
         <p class="pv-crumb" id="pv-crumb"></p>
+        <button type="button" class="pc-cs-btn" id="pc-cs-btn" hidden>Case study</button>
+      </div>
+      <div class="hud pc-hud" id="pc-hud" role="toolbar" aria-label="Project canvas controls">
+        <button type="button" class="hud-btn hud-icon" data-pzoom="-1" aria-label="Zoom out" title="Zoom out (−)">
+          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3.5 8h9" stroke="currentColor" stroke-width="1.4"/></svg>
+        </button>
+        <button type="button" class="hud-btn hud-zoom" id="pc-zoom" aria-label="Reset zoom to 100%" title="Zoom to 100% (1)">100%</button>
+        <button type="button" class="hud-btn hud-icon" data-pzoom="1" aria-label="Zoom in" title="Zoom in (+)">
+          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3.5 8h9M8 3.5v9" stroke="currentColor" stroke-width="1.4"/></svg>
+        </button>
+        <span class="hud-div" aria-hidden="true"></span>
+        <button type="button" class="hud-btn hud-fit" id="pc-fit" title="Fit all (0)">
+          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>
+          <span>Fit all</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ============ CASE STUDY SHEET (projects with a caseStudy) ============ -->
+    <div class="cs-sheet" id="cs-sheet" role="dialog" aria-modal="true" aria-labelledby="cs-title" hidden>
+      <div class="pv-bar" id="cs-sheet-bar">
+        <button type="button" class="pv-back" id="cs-back">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M13 8H3M7.5 3.5 3 8l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+          <span>Project canvas</span>
+        </button>
+        <p class="pv-crumb" id="cs-crumb"></p>
         <span class="pv-hint" aria-hidden="true">Esc</span>
       </div>
       <div class="pv-inner">
-        <div class="showcase" id="showcase" aria-label="Project showcase">
-          <div class="sc-main">
-            <div class="stage" id="stage"></div>
-            <div class="stage-bar" id="stage-bar"></div>
-            <div class="strip" id="strip" role="group" aria-label="Frames"></div>
-          </div>
-          <aside class="sc-info" id="info" aria-live="polite"></aside>
-        </div>
-        <!-- Case study: filled only for projects that have one (see caseStudy in projects.js). -->
         <section class="case-study" id="case-study" aria-labelledby="cs-title" hidden></section>
       </div>
     </div>
@@ -182,10 +198,6 @@
         <p class="lv-kicker">Hediyeh Khodashenas</p>
         <h1 class="lv-title">Product thinking, made <em>visible.</em></h1>
         <p class="lv-meta">UI/UX · Visual design — Istanbul, Türkiye</p>
-        <figure class="nojs-figure">
-          <img src="assets/work/action-sports-club/hero.webp" alt="Action Sports Club homepage preview" width="1600" height="1103">
-          <figcaption>Action Sports Club — website design, 2026</figcaption>
-        </figure>
         <h2 class="lv-sec">Digital products</h2>
         <ul class="nojs-list">
           <li>Action Sports Club — Website design, 2026</li>

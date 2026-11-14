@@ -2,7 +2,7 @@
 
 Static site (HTML, CSS, JS). Dark theme. No build step.
 
-The home page is a **design canvas**: pan around a dark, dotted file where each project is an artboard, with a few sticky notes (about, experience, education, recognition, contact). Clicking a frame zooms into it and opens the full project view. A **List** view (top right) shows the same projects as a plain vertical list.
+The home page is a **canvas** you can pan and zoom. Each project is a colourful **sticky note** (name + short tag). Next to them are clearly titled zones: About me, Experience, Education, Recognition, Contact. The first view frames all of them, and the section chips in the top bar fly the camera to each one. Clicking a project note zooms into it and opens that project's own **project canvas**, a second pannable space with a title note, a **Web** row of desktop frames and a **Mobile** row of phone frames. Projects without images show an honest "Designs coming soon" placeholder. A **List** view (top right) shows the same content as a plain page.
 
 ## Publish on GitHub Pages
 1. Push these files to the root of the repository's `main` branch.
@@ -12,27 +12,25 @@ The home page is a **design canvas**: pan around a dark, dotted file where each 
 All paths are relative, so it works there and straight from disk (`file://`). `.nojekyll` skips Jekyll processing. `404.html` is the not-found page.
 
 ## Structure
-- `index.html` — top bar, canvas (title area + sticky notes are plain HTML), list view, project view, lightbox, `<noscript>` fallback.
-- `assets/js/projects.js` — project data (one entry per project).
-- `assets/js/camera.js` — pan / zoom engine for the canvas (one CSS transform, pointer events, momentum, soft bounds).
-- `assets/js/main.js` — builds the artboards and the list from `projects.js`, places everything on the canvas, HUD, routing, project showcase and case study.
-- `assets/css/style.css` — base styles, project showcase, case study, lightbox.
-- `assets/css/canvas.css` — canvas, artboards, sticky notes, HUD, top bar, list view, project-view overlay.
+- `index.html`: top bar (with section chips), home canvas (title area and info notes are plain HTML), list view, project canvas overlay, case-study sheet, lightbox, `<noscript>` fallback.
+- `assets/js/projects.js`: project data (one entry per project).
+- `assets/js/camera.js`: pan/zoom engine (one CSS transform, pointer events, momentum, soft bounds). Used by both the home canvas and the project canvas.
+- `assets/js/main.js`: builds the sticky notes, the home layout (wide and phone), the section nav, the project canvas, the case-study sheet, routing, keyboard and the list view.
+- `assets/css/style.css`: base styles, case study, lightbox.
+- `assets/css/canvas.css`: top bar, chips, canvas, sticky notes, zone titles, HUD, project canvas, case-study sheet, list view.
 
 ## Editing
-- Projects: `assets/js/projects.js`. Keep `summary` to one short line. `category` decides the cluster on the canvas (`digital`, `visual`, `engineering`).
-- Images: put files in `assets/work/<slug>/` and list them in that project's `media` array. Frames with `width <= 500` are shown inside a phone. The first desktop image becomes the artboard preview; projects without images get a typographic artboard (context, year, title, scope).
-- Canvas layout: positions are in `PLACE` (clusters) and `NOTES` (sticky notes) near the top of the canvas section in `main.js`. Units are canvas px at 100% zoom. The first digital project with images gets the wide cover + mobile frame.
-- Sticky notes: edit their text in `index.html` (`<aside class="note">`). The list view reuses the same text.
-- Case study: a project can carry an optional `caseStudy` object. It renders below that project's showcase. `index.html?project=action-sports-club#case-study` lands on it directly. Images live in `assets/work/<slug>/case-study/`.
+- Projects: `assets/js/projects.js`. `context` is the short tag on the sticky note (falls back to the category). `category` sets the group on the home canvas (`digital`, `visual`, `engineering`). Note colours cycle through yellow, pink, mint, lavender, peach and sky in display order, and each note gets a small fixed tilt.
+- Images: put files in `assets/work/<slug>/` and list them in that project's `media` array. Frames with `width <= 500` go in the Mobile row, all others in the Web row. A project with no media shows the "Designs coming soon" placeholder.
+- Home layout: `layoutHome()` in `main.js` (separate wide and phone layouts). Units are canvas px at 100% zoom.
+- Info notes: edit their text in `index.html` (`<aside class="note">`). The list view reuses the same text.
+- Case study: a project can carry an optional `caseStudy` object. It opens from the project canvas (the "Case study" button or card). `index.html?project=action-sports-club#case-study` lands on it directly. Images live in `assets/work/<slug>/case-study/`.
 - Preview locally: open `index.html` in a browser.
 
 ## Links
-- `index.html?project=<slug>` opens a project directly; Back / Esc zooms out to the canvas.
+- `index.html?project=<slug>` opens a project canvas directly. Back, Esc or the browser's back button return home, to the camera position you left.
+- `index.html?project=<slug>#case-study` opens the case study.
 - `index.html#list` opens the list view.
 
-## Canvas controls
-Drag to pan (mouse or touch) · two-finger trackpad scroll pans · pinch or ctrl/⌘ + scroll zooms · double-click empty canvas to zoom in · arrow keys / WASD pan · `+` / `−` zoom · `0` fit all · `1` 100% · Tab moves through artboards, Enter opens · Esc steps back one level (lightbox → project → canvas). Click a sticky note to bring it up to reading size. The HUD (bottom) has zoom, Fit all, and a Sections jump list. `prefers-reduced-motion` turns camera moves into instant cuts.
-
-## Showcase controls
-Click a thumbnail or use ← → to change frames · hover a tall frame to scroll it · click the frame (or Expand) for full view · swipe on touch.
+## Controls
+Drag to pan (mouse or touch) · two-finger trackpad scroll pans · pinch or ctrl/⌘ + scroll zooms · double-click empty canvas to zoom in · arrow keys / WASD pan · `+` / `−` zoom · `0` fit all · `1` 100% · Tab moves through notes and frames, Enter opens · Esc steps back one level (lightbox → case study → project canvas → home). On the project canvas, clicking a frame fits it to the screen, and clicking it again opens it full size. `prefers-reduced-motion` turns camera moves into instant cuts.
